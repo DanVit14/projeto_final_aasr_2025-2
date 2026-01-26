@@ -1,0 +1,4 @@
+# Configuração master do Postfix
+# Será expandida durante a implementação
+
+smtp      inet  n       -       y       -       -       smtpd

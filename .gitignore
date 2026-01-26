@@ -1,0 +1,55 @@
+# Docker
+*.log
+docker-compose.override.yml
+
+# Backups
+backups/*.sql
+backups/*.dump
+backups/*.tar.gz
+!backups/.gitkeep
+
+# Configurações locais
+.env
+*.local
+configs/local/
+
+# Logs
+logs/*.log
+*.log
+
+# Dados temporários
+tmp/
+temp/
+*.tmp
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+*~
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Certificados e chaves (não versionar!)
+*.key
+*.pem
+*.crt
+*.csr
+secrets/
+
+# Dados de containers
+data/postgres/
+data/ldap/
+data/smtp/
+data/logs/
+
+# Arquivos de teste
+test_files/
+*.test
+
+# ISO e imagens grandes
+*.iso
+*.img

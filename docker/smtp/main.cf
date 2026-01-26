@@ -1,0 +1,8 @@
+# Configuração básica do Postfix
+# Será expandida durante a implementação
+
+myhostname = mail.empresa.local
+mydomain = empresa.local
+myorigin = $mydomain
+inet_interfaces = all
+mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain

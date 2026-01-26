@@ -1,0 +1,24 @@
+# Regras básicas de firewall
+# Será expandida durante a implementação
+
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+
+# Permitir loopback
+-A INPUT -i lo -j ACCEPT
+
+# Permitir tráfego estabelecido
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Permitir SSH
+-A INPUT -p tcp --dport 22 -j ACCEPT
+
+# Logging de tentativas bloqueadas
+-A INPUT -j LOG --log-prefix "IPTABLES-BLOCKED: "
+
+# Política padrão
+-A INPUT -j DROP
+
+COMMIT

@@ -1,0 +1,153 @@
+version: '3.8'
+
+services:
+  # Container 1: LDAP/AD (Samba)
+  ldap:
+    build: ./docker/ldap
+    container_name: ldap_ad
+    hostname: ldap.empresa.local
+    networks:
+      aasr_net:
+        ipv4_address: 10.0.1.10
+    ports:
+      - "389:389"   # LDAP
+      - "636:636"   # LDAPS
+      - "88:88"     # Kerberos
+      - "445:445"   # SMB/CIFS
+      - "135:135"   # RPC
+    volumes:
+      - ldap_data:/var/lib/samba
+      - ldap_config:/etc/samba
+      - ./docker/ldap/samba.conf:/etc/samba/smb.conf:ro
+    environment:
+      - DOMAIN=empresa.local
+      - ADMIN_PASS=Admin@123
+    restart: unless-stopped
+    depends_on:
+      - logs-ntp
+
+  # Container 2: Firewall
+  firewall:
+    build: ./docker/firewall
+    container_name: firewall
+    hostname: firewall.empresa.local
+    networks:
+      aasr_net:
+        ipv4_address: 10.0.1.20
+    ports:
+      - "22:22"     # SSH
+    volumes:
+      - ./docker/firewall/iptables.rules:/etc/iptables/rules.v4:ro
+      - ./docker/firewall/firewall.sh:/usr/local/bin/firewall.sh:ro
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    restart: unless-stopped
+    depends_on:
+      - logs-ntp
+
+  # Container 3: SMTP + Antivírus
+  smtp:
+    build: ./docker/smtp
+    container_name: smtp_antivirus
+    hostname: mail.empresa.local
+    networks:
+      aasr_net:
+        ipv4_address: 10.0.1.30
+    ports:
+      - "25:25"     # SMTP
+      - "587:587"   # SMTP Submission
+      - "993:993"   # IMAPS
+      - "995:995"   # POP3S
+    volumes:
+      - smtp_data:/var/mail
+      - smtp_vhosts:/var/mail/vhosts
+      - clamav_data:/var/lib/clamav
+      - ./docker/smtp/main.cf:/etc/postfix/main.cf:ro
+      - ./docker/smtp/master.cf:/etc/postfix/master.cf:ro
+    environment:
+      - DOMAIN=empresa.local
+      - LDAP_SERVER=ldap
+      - LDAP_BASE=dc=empresa,dc=local
+    restart: unless-stopped
+    depends_on:
+      - ldap
+      - logs-ntp
+
+  # Container 4: Banco de Dados
+  database:
+    build: ./docker/database
+    container_name: database
+    hostname: db.empresa.local
+    networks:
+      aasr_net:
+        ipv4_address: 10.0.1.40
+    ports:
+      - "5432:5432" # PostgreSQL
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./scripts/backup_db.sh:/usr/local/bin/backup_db.sh:ro
+      - ./scripts/restore_db.sh:/usr/local/bin/restore_db.sh:ro
+      - ./backups:/backups
+    environment:
+      - POSTGRES_DB=empresa_db
+      - POSTGRES_USER=app_user
+      - POSTGRES_PASSWORD=db_pass_123
+    restart: unless-stopped
+    depends_on:
+      - logs-ntp
+
+  # Container 5: Logs + NTP
+  logs-ntp:
+    build: ./docker/logs-ntp
+    container_name: logs_ntp
+    hostname: logs.empresa.local
+    networks:
+      aasr_net:
+        ipv4_address: 10.0.1.50
+    ports:
+      - "514:514/udp"  # rsyslog UDP
+      - "514:514/tcp"  # rsyslog TCP
+      - "123:123/udp"  # NTP
+    volumes:
+      - logs_data:/var/log/remote
+      - ./docker/logs-ntp/rsyslog.conf:/etc/rsyslog.conf:ro
+      - ./docker/logs-ntp/chrony.conf:/etc/chrony/chrony.conf:ro
+    cap_add:
+      - SYS_TIME
+    restart: unless-stopped
+
+  # Container 6: Cliente de Teste (Opcional)
+  cliente:
+    build: ./docker/cliente
+    container_name: cliente_teste
+    hostname: cliente.empresa.local
+    networks:
+      aasr_net:
+        ipv4_address: 10.0.1.60
+    volumes:
+      - ./scripts/test_services.sh:/usr/local/bin/test_services.sh:ro
+    restart: "no"
+    depends_on:
+      - ldap
+      - smtp
+      - database
+      - logs-ntp
+
+networks:
+  aasr_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.1.0/24
+          gateway: 10.0.1.1
+
+volumes:
+  ldap_data:
+  ldap_config:
+  smtp_data:
+  smtp_vhosts:
+  clamav_data:
+  postgres_data:
+  logs_data:
