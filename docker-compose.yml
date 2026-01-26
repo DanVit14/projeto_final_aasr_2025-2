@@ -85,8 +85,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      - ./scripts/backup_db.sh:/usr/local/bin/backup_db.sh:ro
-      - ./scripts/restore_db.sh:/usr/local/bin/restore_db.sh:ro
       - ./backups:/backups
     environment:
       - POSTGRES_DB=empresa_db

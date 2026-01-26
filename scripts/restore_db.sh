@@ -21,7 +21,8 @@ fi
 DB_NAME="empresa_db"
 DB_USER="app_user"
 DB_PASSWORD="db_pass_123"
-DB_HOST="database"
+# Dentro do container, usar localhost
+DB_HOST="localhost"
 
 echo "Iniciando restauração do banco de dados..."
 echo "Banco: ${DB_NAME}"
