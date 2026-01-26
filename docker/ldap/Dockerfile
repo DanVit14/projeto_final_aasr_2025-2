@@ -20,12 +20,7 @@ RUN apt-get update && apt-get install -y \
 # Criar diretórios necessários
 RUN mkdir -p /var/lib/samba \
     /var/log/samba \
-    /shared/public \
-    /shared/private \
     /etc/samba
-
-# Configurar permissões
-RUN chmod 755 /shared/public /shared/private
 
 # Copiar arquivos de configuração
 COPY samba.conf /etc/samba/smb.conf.template

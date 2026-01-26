@@ -71,7 +71,7 @@ echo "6. Testando compartilhamentos SMB..."
 if docker-compose exec -T ldap test -d /shared/public && docker-compose exec -T ldap test -d /shared/private; then
     echo -e "${GREEN}✓ OK${NC}"
     echo "   Compartilhamentos criados:"
-    docker-compose exec -T ldap ls -ld /shared/* | awk '{print "   - " $9}'
+    docker-compose exec -T ldap ls -ld /shared/public /shared/private 2>/dev/null | awk '{print "   - " $9}' || echo "   - /shared/public" && echo "   - /shared/private"
 else
     echo -e "${RED}✗ FALHOU${NC}"
 fi

@@ -11,6 +11,10 @@ echo "=========================================="
 DOMAIN="${DOMAIN:-empresa.local}"
 ADMIN_PASS="${ADMIN_PASS:-Admin@123}"
 
+# Criar diretórios de compartilhamento (se não existirem)
+mkdir -p /shared/public /shared/private
+chmod 755 /shared/public /shared/private
+
 # Verificar se já existe domínio configurado
 if [ ! -f "/var/lib/samba/private/sam.ldb" ]; then
     echo "Domínio não encontrado. Provisionando..."

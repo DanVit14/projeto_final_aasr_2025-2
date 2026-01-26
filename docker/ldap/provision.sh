@@ -69,12 +69,16 @@ samba-tool group addmembers "Users" user1,user2 2>/dev/null || true
 # Configurar compartilhamentos
 echo "Configurando compartilhamentos..."
 
-# Criar diretórios de compartilhamento
+# Garantir que os diretórios existam
 mkdir -p /shared/public /shared/private
 
 # Configurar permissões e ACLs
 chmod 777 /shared/public
 chmod 770 /shared/private
+
+# Criar arquivos de teste nos compartilhamentos
+echo "Compartilhamento Público - Todos podem acessar" > /shared/public/README.txt
+echo "Compartilhamento Privado - Apenas usuários autenticados" > /shared/private/README.txt
 
 # Configurar ACLs no compartilhamento privado (apenas grupo Users)
 setfacl -m g:"${DOMAIN_UP%%.*}\\Users":rwx /shared/private 2>/dev/null || true
