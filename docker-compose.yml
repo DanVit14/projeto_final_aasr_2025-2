@@ -16,10 +16,13 @@ services:
     volumes:
       - ldap_data:/var/lib/samba
       - ldap_config:/etc/samba
-      - ./docker/ldap/samba.conf:/etc/samba/smb.conf:ro
+      - ./docker/ldap/samba.conf:/etc/samba/smb.conf.template:ro
+      - ldap_shares:/shared
     environment:
       - DOMAIN=empresa.local
       - ADMIN_PASS=Admin@123
+      - DOMAIN_UP=EMPRESA
+      - DOMAIN_DN=dc=empresa,dc=local
     restart: unless-stopped
     depends_on:
       - logs-ntp
@@ -142,6 +145,7 @@ networks:
 volumes:
   ldap_data:
   ldap_config:
+  ldap_shares:
   smtp_data:
   smtp_vhosts:
   clamav_data:
