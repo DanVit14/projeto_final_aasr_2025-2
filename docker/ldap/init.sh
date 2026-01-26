@@ -15,9 +15,8 @@ ADMIN_PASS="${ADMIN_PASS:-Admin@123}"
 if [ ! -f "/var/lib/samba/private/sam.ldb" ]; then
     echo "Domínio não encontrado. Provisionando..."
     # IMPORTANTE: Remover smb.conf se existir (o provisionamento precisa gerar)
-    # Também remover outros arquivos que possam interferir
+    # Não remover smb.conf.template pois está montado como volume read-only
     rm -f /etc/samba/smb.conf
-    rm -f /etc/samba/smb.conf.template
     /usr/local/bin/provision.sh
     # Após provisionamento, adicionar compartilhamentos ao smb.conf gerado
     if [ -f "/etc/samba/smb.conf" ]; then
