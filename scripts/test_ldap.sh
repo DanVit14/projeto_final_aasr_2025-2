@@ -24,6 +24,7 @@ else
     echo -e "${RED}✗ FALHOU${NC}"
 fi
 echo ""
+sleep 3
 
 # Teste 2: Informações do domínio (usando localhost)
 echo "2. Testando informações do domínio..."
@@ -34,6 +35,7 @@ else
     echo -e "${YELLOW}⚠ Verificar manualmente${NC}"
 fi
 echo ""
+sleep 3
 
 # Teste 3: LDAP search (sem autenticação - anonymous)
 echo "3. Testando busca LDAP (anonymous)..."
@@ -44,6 +46,7 @@ else
     echo -e "${RED}✗ FALHOU${NC}"
 fi
 echo ""
+sleep 3
 
 # Teste 4: LDAP search com autenticação (LDAPS)
 echo "4. Testando autenticação LDAP (LDAPS)..."
@@ -54,6 +57,7 @@ else
     echo -e "${YELLOW}⚠ LDAPS pode não estar configurado (normal)${NC}"
 fi
 echo ""
+sleep 3
 
 # Teste 5: Listar grupos
 echo "5. Testando listagem de grupos..."
@@ -65,6 +69,7 @@ else
     echo -e "${RED}✗ FALHOU${NC}"
 fi
 echo ""
+sleep 3
 
 # Teste 6: Verificar compartilhamentos SMB
 echo "6. Testando compartilhamentos SMB..."
@@ -76,6 +81,7 @@ else
     echo -e "${RED}✗ FALHOU${NC}"
 fi
 echo ""
+sleep 3
 
 # Teste 7: Verificar se o Samba está rodando
 echo "7. Testando se o Samba está rodando..."
