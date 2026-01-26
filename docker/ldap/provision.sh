@@ -21,6 +21,10 @@ if [ -f "/var/lib/samba/private/sam.ldb" ]; then
     exit 0
 fi
 
+# CRÍTICO: Remover smb.conf se existir (o provisionamento precisa gerar)
+echo "Removendo smb.conf existente (se houver)..."
+rm -f /etc/samba/smb.conf
+
 # Provisionar o domínio
 echo "Provisionando domínio Active Directory..."
 samba-tool domain provision \
