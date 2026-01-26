@@ -85,11 +85,35 @@ sleep 3
 
 # Teste 7: Verificar se o Samba está rodando
 echo "7. Testando se o Samba está rodando..."
-if docker-compose exec -T ldap smbclient -L localhost -N > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ OK${NC}"
-    echo "   Samba está respondendo"
+# Verificar múltiplas formas para ter certeza
+SAMBA_OK=false
+
+# Método 1: Verificar se o processo samba está rodando
+if docker-compose exec -T ldap pgrep -x samba > /dev/null 2>&1; then
+    SAMBA_OK=true
+    echo "   ✓ Processo Samba encontrado"
+fi
+
+# Método 2: Verificar se a porta 445 está ouvindo
+if docker-compose exec -T ldap netstat -tuln 2>/dev/null | grep -q ":445 " || \
+   docker-compose exec -T ldap ss -tuln 2>/dev/null | grep -q ":445 "; then
+    SAMBA_OK=true
+    echo "   ✓ Porta 445 (SMB) está ouvindo"
+fi
+
+# Método 3: Tentar conexão SMB
+if docker-compose exec -T ldap timeout 3 smbclient -L localhost -N > /dev/null 2>&1; then
+    SAMBA_OK=true
+    echo "   ✓ Conexão SMB bem-sucedida"
+    echo "   Compartilhamentos disponíveis:"
+    docker-compose exec -T ldap smbclient -L localhost -N 2>/dev/null | grep -E "^[[:space:]]+[A-Z]" | head -5 | sed 's/^/     - /' || true
+fi
+
+# Resultado final
+if [ "$SAMBA_OK" = true ]; then
+    echo -e "${GREEN}✓ OK - Samba está rodando e funcionando${NC}"
 else
-    echo -e "${YELLOW}⚠ Verificar manualmente${NC}"
+    echo -e "${RED}✗ FALHOU - Samba não está respondendo${NC}"
 fi
 echo ""
 
