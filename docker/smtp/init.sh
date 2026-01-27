@@ -77,10 +77,11 @@ fi
 sa-update >/dev/null 2>&1 &
 echo "   ✓ SpamAssassin configurado"
 
-# Amavis (em background)
-if [ -f /etc/amavis/conf.d/50-user ]; then
-    amavisd-new start >/dev/null 2>&1 || echo "   ⚠ Amavis pode precisar de configuração adicional"
-fi
+# Amavis (em background) - comentar temporariamente se estiver causando problemas
+# if [ -f /etc/amavis/conf.d/50-user ]; then
+#     amavisd-new start >/dev/null 2>&1 || echo "   ⚠ Amavis pode precisar de configuração adicional"
+# fi
+echo "   ⚠ Amavis desabilitado temporariamente para debug"
 
 # Dovecot (em background)
 if [ -f /etc/dovecot/dovecot.conf ]; then
@@ -103,5 +104,10 @@ fi
 
 # Iniciar Postfix
 echo "Iniciando Postfix..."
-echo ""
+
+# Verificar configuração antes de iniciar
+/usr/sbin/postfix check
+
+# Iniciar Postfix em foreground para manter o container rodando
+# e ver os logs em tempo real
 exec /usr/sbin/postfix start-fg

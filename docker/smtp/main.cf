@@ -58,7 +58,8 @@ smtpd_sender_restrictions =
     permit
 
 # Integração com Amavis (ClamAV + SpamAssassin)
-content_filter = amavis:[127.0.0.1]:10024
+# Comentado temporariamente para debug - descomentar quando Amavis estiver funcionando
+# content_filter = amavis:[127.0.0.1]:10024
 
 # Configurações de transporte
 relayhost =
