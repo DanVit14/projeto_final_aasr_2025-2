@@ -33,22 +33,19 @@ mkdir -p /var/spool/postfix/public \
 chown root:root /var/spool/postfix
 chmod 755 /var/spool/postfix
 
-# public e maildrop devem ser root:postdrop para postdrop funcionar
-chown root:postdrop /var/spool/postfix/public /var/spool/postfix/maildrop
-chmod 755 /var/spool/postfix/public
-chmod 1777 /var/spool/postfix/maildrop
+# public e maildrop devem ser postfix:postdrop com setgid para postdrop funcionar
+chown postfix:postdrop /var/spool/postfix/public /var/spool/postfix/maildrop
+chmod 2755 /var/spool/postfix/public  # 2755 = rwxr-sr-x (setgid)
+chmod 2775 /var/spool/postfix/maildrop  # 2775 = rwxrwsr-x (setgid + group write)
 
-# Outros diretórios de queue devem ser root:root
-chown root:root /var/spool/postfix/incoming \
+# Outros diretórios de queue devem ser postfix:postfix
+chown postfix:postfix /var/spool/postfix/incoming \
     /var/spool/postfix/active \
     /var/spool/postfix/deferred \
     /var/spool/postfix/hold \
     /var/spool/postfix/bounce \
     /var/spool/postfix/pid \
-    /var/spool/postfix/private \
-    /var/spool/postfix/etc \
-    /var/spool/postfix/lib \
-    /var/spool/postfix/usr 2>/dev/null || true
+    /var/spool/postfix/private 2>/dev/null || true
 
 chmod 755 /var/spool/postfix/incoming
 chmod 755 /var/spool/postfix/active

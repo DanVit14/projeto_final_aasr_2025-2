@@ -37,16 +37,16 @@ RUN mkdir -p /var/mail/vhosts/empresa.local \
     /var/lib/amavis/tmp
 
 # Configurar permissões
-# Diretórios principais devem ser root:root
+# Diretório principal deve ser root:root
 RUN chown root:root /var/spool/postfix \
     && chmod 755 /var/mail/vhosts \
     && chmod 755 /var/spool/postfix \
-    # public e maildrop devem ser root:postdrop para postdrop funcionar
-    && chown root:postdrop /var/spool/postfix/public /var/spool/postfix/maildrop \
-    && chmod 755 /var/spool/postfix/public \
-    && chmod 1777 /var/spool/postfix/maildrop \
-    # Outros diretórios de queue devem ser root:root
-    && chown root:root /var/spool/postfix/incoming /var/spool/postfix/active \
+    # public e maildrop devem ser postfix:postdrop com setgid para postdrop funcionar
+    && chown postfix:postdrop /var/spool/postfix/public /var/spool/postfix/maildrop \
+    && chmod 2755 /var/spool/postfix/public \
+    && chmod 2775 /var/spool/postfix/maildrop \
+    # Outros diretórios de queue devem ser postfix:postfix
+    && chown postfix:postfix /var/spool/postfix/incoming /var/spool/postfix/active \
        /var/spool/postfix/deferred /var/spool/postfix/hold \
        /var/spool/postfix/bounce /var/spool/postfix/pid \
     && chmod 755 /var/spool/postfix/incoming /var/spool/postfix/active \
