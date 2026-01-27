@@ -144,11 +144,12 @@ fi
 sa-update >/dev/null 2>&1 &
 echo "   ✓ SpamAssassin configurado"
 
-# Amavis (em background) - comentar temporariamente se estiver causando problemas
-# if [ -f /etc/amavis/conf.d/50-user ]; then
-#     amavisd-new start >/dev/null 2>&1 || echo "   ⚠ Amavis pode precisar de configuração adicional"
-# fi
-echo "   ⚠ Amavis desabilitado temporariamente para debug"
+# Amavis (ClamAV + SpamAssassin) — deve subir depois do clamd
+if [ -f /etc/amavis/conf.d/50-user ]; then
+    amavisd-new start >/dev/null 2>&1 && echo "   ✓ Amavis iniciado (10024)" || echo "   ⚠ Amavis falhou ao iniciar (verificar clamd e logs)"
+else
+    echo "   ⚠ Amavis: 50-user não encontrado"
+fi
 
 # Dovecot (em background)
 if [ -f /etc/dovecot/dovecot.conf ]; then
