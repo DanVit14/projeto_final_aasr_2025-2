@@ -1,7 +1,6 @@
 # Configuração LDAP para domínios virtuais
 # Usando LDAPS (636) diretamente - StartTLS não está funcionando
-server_host = ldap
-server_port = 636
+server_host = ldaps://ldap:636
 version = 3
 bind = yes
 start_tls = no
