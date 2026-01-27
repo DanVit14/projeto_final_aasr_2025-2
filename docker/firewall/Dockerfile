@@ -11,8 +11,8 @@ COPY iptables.rules /etc/iptables/rules.v4
 COPY firewall.sh /usr/local/bin/firewall.sh
 COPY rsyslog-forward.conf /etc/rsyslog.d/99-forward.conf
 
-RUN chmod +x /usr/local/bin/firewall.sh
+RUN chmod 755 /usr/local/bin/firewall.sh
 
 EXPOSE 22
 
-CMD ["/usr/local/bin/firewall.sh"]
+CMD ["/bin/bash", "/usr/local/bin/firewall.sh"]
