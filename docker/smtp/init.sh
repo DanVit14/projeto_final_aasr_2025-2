@@ -113,32 +113,49 @@ echo "Iniciando Postfix..."
 sleep 1
 
 # Iniciar Postfix
+echo "   Executando: postfix start"
 /usr/sbin/postfix start
 
 # Aguardar um pouco para o Postfix iniciar completamente
-sleep 3
+sleep 5
 
 # Verificar se o Postfix iniciou corretamente
+echo "   Verificando status..."
 if /usr/sbin/postfix status >/dev/null 2>&1; then
-    echo "   ✓ Postfix iniciado"
+    echo "   ✓ Postfix está rodando"
     
     # Verificar se o smtpd está rodando
     if pgrep -f "smtpd.*smtp" >/dev/null; then
         echo "   ✓ smtpd está rodando"
     else
-        echo "   ⚠ smtpd não está rodando - tentando reiniciar"
+        echo "   ⚠ smtpd não está rodando - tentando reload"
         /usr/sbin/postfix reload
-        sleep 2
+        sleep 3
+        if pgrep -f "smtpd.*smtp" >/dev/null; then
+            echo "   ✓ smtpd iniciado após reload"
+        else
+            echo "   ✗ smtpd ainda não está rodando"
+        fi
     fi
 else
-    echo "   ✗ Postfix não iniciou corretamente"
-    echo "   Verificando logs..."
-    tail -20 /var/log/mail.log 2>/dev/null || echo "   (logs não disponíveis)"
+    echo "   ✗ Postfix não iniciou - tentando novamente..."
+    /usr/sbin/postfix start
+    sleep 3
+    /usr/sbin/postfix status 2>&1 | head -3
 fi
 
 echo ""
-echo "Mantendo container rodando..."
+echo "Postfix iniciado. Mantendo container rodando..."
 echo ""
 
-# Manter o container rodando e mostrar logs
-tail -f /var/log/mail.log 2>/dev/null || exec /usr/sbin/postfix start-fg
+# Manter o container rodando
+# Usar um loop para manter o processo vivo e verificar se o Postfix ainda está rodando
+while true; do
+    # Verificar se o Postfix ainda está rodando a cada 30 segundos
+    if ! /usr/sbin/postfix status >/dev/null 2>&1; then
+        echo "Postfix parou! Reiniciando..."
+        /usr/sbin/postfix start
+        sleep 5
+    fi
+    sleep 30
+done
