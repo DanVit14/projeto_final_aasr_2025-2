@@ -18,7 +18,8 @@ showq     unix  n       -       n       -       -       showq
 # Serviço virtual (entrega para domínios virtuais/Maildir)
 virtual   unix  -       n       n       -       -       virtual
 
-# defer e trace (o virtual usa para notificar status de entrega; o binário é bounce em todos os casos)
+# bounce, defer e trace (relatórios de status; envio para <root> usa private/bounce)
+bounce    unix  -       -       n       -       0       bounce
 defer     unix  -       -       n       -       0       bounce
 trace     unix  -       -       n       -       0       bounce
 
