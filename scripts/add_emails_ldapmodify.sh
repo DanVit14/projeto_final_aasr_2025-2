@@ -44,53 +44,46 @@ USER_EMAIL[user2]="user2@${DOMAIN}"
 USER_EMAIL[Administrator]="administrator@${DOMAIN}"
 
 echo "   Obtendo DNs dos usuários no LDAP..."
-> "$TMP_LDIF"
+
+# Aplicar uma entrada por vez (evita erros de formato LDIF multi-entrada)
+result=0
 for user in admin user1 user2 Administrator; do
     dn=$(get_dn "$user")
     email="${USER_EMAIL[$user]}"
     if [ -z "$email" ]; then
         email="${user}@${DOMAIN}"
     fi
-    if [ -n "$dn" ]; then
-        cat >> "$TMP_LDIF" <<EOL
-dn: ${dn}
-changetype: modify
-add: mail
-mail: ${email}
--
-
-EOL
-        echo "   ✓ $user -> $dn"
-    else
-        # Fallback: CN igual ao nome do usuário (alguns ambientes)
+    if [ -z "$dn" ]; then
         dn="CN=${user},CN=Users,${DOMAIN_DN}"
-        cat >> "$TMP_LDIF" <<EOL
+        echo "   ⚠ $user: usando DN fallback"
+    else
+        echo "   ✓ $user -> $dn"
+    fi
+
+    # Um LDIF por usuário (formato mais aceito pelo ldapmodify)
+    cat > "$TMP_LDIF" <<EOL
 dn: ${dn}
 changetype: modify
 add: mail
 mail: ${email}
 -
-
 EOL
-        echo "   ⚠ $user: usando DN fallback $dn"
+    docker cp "$TMP_LDIF" smtp_antivirus:/tmp/add_one.ldif 2>/dev/null
+    out=$(docker-compose exec -T smtp ldapmodify -x -H ldaps://ldap:636 \
+        -D "cn=Administrator,cn=Users,${DOMAIN_DN}" \
+        -w "Admin@123" \
+        -f /tmp/add_one.ldif 2>&1)
+    r=$?
+    if [ $r -ne 0 ]; then
+        echo "   ✗ $user: falha - $out"
+        result=$r
     fi
 done
 
-echo "1. Copiando arquivo LDIF para o container SMTP..."
-docker cp "$TMP_LDIF" smtp_antivirus:/tmp/add_emails.ldif
-
-echo "2. Aplicando modificações usando ldapmodify do container SMTP..."
-docker-compose exec -T smtp ldapmodify -x -H ldaps://ldap:636 \
-    -D "cn=Administrator,cn=Users,${DOMAIN_DN}" \
-    -w "Admin@123" \
-    -f /tmp/add_emails.ldif 2>&1
-
-result=$?
-
 echo ""
-echo "3. Limpando arquivo temporário..."
+echo "1. Modificações por usuário aplicadas."
 rm -f "$TMP_LDIF"
-docker-compose exec -T smtp rm -f /tmp/add_emails.ldif 2>&1 >/dev/null
+docker-compose exec -T smtp rm -f /tmp/add_one.ldif /tmp/add_emails.ldif 2>/dev/null
 
 if [ $result -eq 0 ]; then
     echo ""
