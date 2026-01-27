@@ -3,10 +3,17 @@
 
 set +e
 
+OUTPUT_FILE="/tmp/postfix_debug_$(date +%Y%m%d_%H%M%S).log"
+
 echo "=========================================="
 echo "Debug Detalhado do Postfix"
 echo "=========================================="
+echo "Salvando saída completa em: $OUTPUT_FILE"
 echo ""
+
+# Redirecionar tudo para o arquivo também
+exec > >(tee -a "$OUTPUT_FILE")
+exec 2>&1
 
 # 1. Verificar se o container está rodando
 echo "1. Status do container:"
@@ -66,3 +73,7 @@ echo ""
 echo "=========================================="
 echo "Debug concluído!"
 echo "=========================================="
+echo ""
+echo "Saída completa salva em: $OUTPUT_FILE"
+echo "Para ver o arquivo: cat $OUTPUT_FILE"
+echo "Para ver as últimas linhas: tail -50 $OUTPUT_FILE"
