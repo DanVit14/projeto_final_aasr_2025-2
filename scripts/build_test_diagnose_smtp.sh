@@ -68,7 +68,7 @@ CONTAINER="${CONTAINER:-smtp}"
   echo ""
 
   echo "========== 11. DIAGNÓSTICO - amavisd debug (80 linhas) =========="
-  docker-compose exec -T "$CONTAINER" sh -c 'timeout 10 amavisd debug 2>/dev/null || timeout 10 amavisd-new debug 2>/dev/null || amavisd debug 2>/dev/null || amavisd-new debug' 2>&1 | head -80
+  docker-compose exec -T "$CONTAINER" sh -c 'if command -v amavisd >/dev/null 2>&1; then timeout 10 amavisd debug; elif command -v amavisd-new >/dev/null 2>&1; then timeout 10 amavisd-new debug; else echo "Nenhum binário amavisd/amavisd-new encontrado"; fi' 2>&1 | head -80
   echo ""
 
   echo "========== 12. DIAGNÓSTICO - Fila Postfix (postqueue -p) =========="
