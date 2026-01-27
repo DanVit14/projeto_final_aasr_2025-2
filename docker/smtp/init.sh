@@ -144,9 +144,31 @@ fi
 sa-update >/dev/null 2>&1 &
 echo "   ✓ SpamAssassin configurado"
 
-# Amavis (ClamAV + SpamAssassin) — deve subir depois do clamd
+# Amavis depende do socket do clamd — aguardar até existir (até 30 s)
+CLAMD_SOCKET=""
+for s in /var/run/clamav/clamd.ctl /run/clamav/clamd.ctl /var/run/clamav/clamd.sock; do
+    [ -S "$s" ] && CLAMD_SOCKET="$s" && break
+done
+if [ -z "$CLAMD_SOCKET" ]; then
+    echo "   Aguardando socket do clamd (Amavis precisa dele)..."
+    for i in $(seq 1 30); do
+        for s in /var/run/clamav/clamd.ctl /run/clamav/clamd.ctl /var/run/clamav/clamd.sock; do
+            if [ -S "$s" ] 2>/dev/null; then CLAMD_SOCKET="$s"; break 2; fi
+        done
+        sleep 1
+    done
+fi
+if [ -n "$CLAMD_SOCKET" ]; then
+    echo "   ✓ Socket clamd: $CLAMD_SOCKET"
+fi
+
+# Amavis (ClamAV + SpamAssassin) — só sobe depois do clamd estar ouvindo
 if [ -f /etc/amavis/conf.d/50-user ]; then
-    amavisd-new start >/dev/null 2>&1 && echo "   ✓ Amavis iniciado (10024)" || echo "   ⚠ Amavis falhou ao iniciar (verificar clamd e logs)"
+    if [ -n "$CLAMD_SOCKET" ]; then
+        amavisd-new start >/dev/null 2>&1 && echo "   ✓ Amavis iniciado (10024)" || echo "   ⚠ Amavis falhou ao iniciar (verificar logs: journalctl -u amavis ou /var/log/amavis)"
+    else
+        echo "   ⚠ Amavis não iniciado: clamd socket não apareceu em 30s (clamd pode não ter subido)"
+    fi
 else
     echo "   ⚠ Amavis: 50-user não encontrado"
 fi
