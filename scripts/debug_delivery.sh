@@ -43,8 +43,11 @@ echo "7. Fila após flush:"
 docker-compose exec -T "$CONTAINER" postqueue -p 2>&1
 echo ""
 
-echo "8. Últimas linhas do container (possível erro de entrega):"
-docker-compose logs "$CONTAINER" --tail=80 2>&1 | grep -iE "postfix|virtual|user1|defer|error|warning|delivery|status=" || echo "   (nenhum filtro encontrado - mostrando últimas 30 linhas)"
+echo "8. Últimas linhas do mail.log (erro de entrega):"
+docker-compose exec -T "$CONTAINER" tail -80 /var/log/mail.log 2>/dev/null || echo "   /var/log/mail.log não existe (rsyslog pode não estar ativo)"
+echo ""
+
+echo "9. Últimas linhas do container:"
 docker-compose logs "$CONTAINER" --tail=30 2>&1
 echo ""
 

@@ -2,6 +2,7 @@ FROM debian:12-slim
 
 # Instalar dependências
 RUN apt-get update && apt-get install -y \
+    rsyslog \
     postfix \
     postfix-ldap \
     dovecot-core \
@@ -62,6 +63,7 @@ RUN echo "TLS_REQCERT never" >> /etc/ldap/ldap.conf
 # Copiar arquivos de configuração
 COPY main.cf /etc/postfix/main.cf
 COPY master.cf /etc/postfix/master.cf
+COPY rsyslog-mail.conf /etc/rsyslog.d/50-mail.conf
 COPY ldap/ /etc/postfix/ldap/
 COPY update-ldap-maps.sh /usr/local/bin/update-ldap-maps.sh
 COPY dovecot.conf /etc/dovecot/dovecot.conf

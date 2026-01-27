@@ -270,6 +270,15 @@ if [ -n "$POSTFIX_UID" ] && [ -n "$POSTFIX_GID" ]; then
     echo "   virtual_uid_maps = static:${POSTFIX_UID}, virtual_gid_maps = static:${POSTFIX_GID}"
 fi
 
+# Iniciar rsyslog para capturar logs do Postfix em /var/log/mail.log (diagnóstico de entrega)
+if [ -f /etc/rsyslog.d/50-mail.conf ] && command -v rsyslogd >/dev/null 2>&1; then
+    touch /var/log/mail.log
+    chmod 644 /var/log/mail.log
+    rsyslogd 2>/dev/null &
+    sleep 1
+    echo "   ✓ rsyslog iniciado (mail.log em /var/log/mail.log)"
+fi
+
 # Iniciar Postfix
 echo "   Executando: postfix start"
 /usr/sbin/postfix start
