@@ -171,19 +171,45 @@ fi
 
 # Atualizar arquivos hash do LDAP antes de iniciar Postfix
 echo "Atualizando arquivos hash do LDAP..."
+# Garantir que o diretório existe
+mkdir -p /etc/postfix/ldap
+chown root:root /etc/postfix/ldap
+chmod 755 /etc/postfix/ldap
+
+# Aguardar um pouco para garantir que o LDAP está totalmente pronto
+sleep 3
+
 if [ -f /usr/local/bin/update-ldap-maps.sh ]; then
-    /usr/local/bin/update-ldap-maps.sh
-    echo "   ✓ Arquivos hash atualizados"
+    echo "   Executando script de atualização..."
+    /usr/local/bin/update-ldap-maps.sh 2>&1
+    EXIT_CODE=$?
+    if [ $EXIT_CODE -eq 0 ]; then
+        echo "   ✓ Script executado com sucesso"
+    else
+        echo "   ⚠ Script retornou código de erro: $EXIT_CODE"
+    fi
 else
-    echo "   ⚠ Script de atualização não encontrado, criando arquivos vazios..."
-    touch /etc/postfix/ldap/virtual-mailbox-domains.hash
-    touch /etc/postfix/ldap/virtual-mailbox-maps.hash
-    touch /etc/postfix/ldap/virtual-alias-maps.hash
-    touch /etc/postfix/ldap/sender-login-maps.hash
-    postmap /etc/postfix/ldap/virtual-mailbox-domains.hash 2>/dev/null || true
-    postmap /etc/postfix/ldap/virtual-mailbox-maps.hash 2>/dev/null || true
-    postmap /etc/postfix/ldap/virtual-alias-maps.hash 2>/dev/null || true
-    postmap /etc/postfix/ldap/sender-login-maps.hash 2>/dev/null || true
+    echo "   ⚠ Script de atualização não encontrado"
+fi
+
+# Garantir que os arquivos existem (criar vazios se necessário)
+for file in virtual-mailbox-domains.hash virtual-mailbox-maps.hash virtual-alias-maps.hash sender-login-maps.hash; do
+    if [ ! -f "/etc/postfix/ldap/$file" ]; then
+        echo "   Criando arquivo vazio: $file"
+        touch "/etc/postfix/ldap/$file"
+    fi
+    # Criar arquivo .db se não existir
+    if [ ! -f "/etc/postfix/ldap/${file}.db" ]; then
+        postmap "/etc/postfix/ldap/$file" 2>/dev/null || true
+    fi
+done
+
+# Verificar se os arquivos foram criados
+if [ -f /etc/postfix/ldap/virtual-mailbox-domains.hash ]; then
+    echo "   ✓ Arquivos hash existem"
+    ls -la /etc/postfix/ldap/*.hash 2>/dev/null | head -4
+else
+    echo "   ✗ ERRO: Arquivos hash não foram criados!"
 fi
 
 # Iniciar Postfix
