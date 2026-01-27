@@ -1,38 +1,18 @@
 #!/bin/bash
-# Script de backup do banco de dados PostgreSQL
+# Backup do PostgreSQL — corre no container database (./backups = /backups no container)
+# Uso: a partir da raiz do projeto, ./scripts/backup_db.sh
 
 set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${PROJECT_DIR}"
+mkdir -p ./backups
 
-BACKUP_DIR="/backups"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="${BACKUP_DIR}/backup_${TIMESTAMP}.sql"
-
-# Variáveis do banco (ajustar conforme docker-compose.yml)
-DB_NAME="empresa_db"
-DB_USER="app_user"
-DB_PASSWORD="db_pass_123"
-# Dentro do container, usar localhost
-DB_HOST="localhost"
-
-echo "Iniciando backup do banco de dados..."
-echo "Banco: ${DB_NAME}"
-echo "Arquivo: ${BACKUP_FILE}"
-
-# Criar diretório de backup se não existir
-mkdir -p "${BACKUP_DIR}"
-
-# Executar backup
-PGPASSWORD="${DB_PASSWORD}" pg_dump -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" > "${BACKUP_FILE}"
-
-# Compactar backup
-gzip "${BACKUP_FILE}"
-BACKUP_FILE="${BACKUP_FILE}.gz"
-
-echo "Backup concluído: ${BACKUP_FILE}"
-echo "Tamanho: $(du -h ${BACKUP_FILE} | cut -f1)"
-
-# Manter apenas os últimos 7 backups
-cd "${BACKUP_DIR}"
-ls -t backup_*.sql.gz | tail -n +8 | xargs -r rm -f
-
-echo "Backup finalizado com sucesso!"
+if docker-compose exec -T database /usr/local/bin/backup_db.sh 2>/dev/null; then
+    echo "Backup concluído. Ficheiros em ./backups/"
+    ls -la ./backups/*.sql.gz 2>/dev/null | tail -3
+else
+    echo "A executar backup direto (host com porta 5432)..."
+    PGPASSWORD=db_pass_123 pg_dump -h 127.0.0.1 -p 5432 -U app_user -d empresa_db | gzip > "./backups/backup_$(date +%Y%m%d_%H%M%S).sql.gz"
+    echo "Backup salvo em ./backups/"
+fi

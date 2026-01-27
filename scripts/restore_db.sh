@@ -1,55 +1,44 @@
 #!/bin/bash
-# Script de restauração do banco de dados PostgreSQL
+# Restauração do PostgreSQL — roda no container database
 
 set -e
 
 if [ -z "$1" ]; then
-    echo "Uso: $0 <arquivo_backup.sql[.gz]>"
-    echo "Exemplo: $0 /backups/backup_20250126_120000.sql.gz"
+    echo "Uso: $0 <arquivo_backup.sql.gz>"
+    echo "Ex.: $0 backups/backup_20250126_120000.sql.gz"
     exit 1
 fi
 
 BACKUP_FILE="$1"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${PROJECT_DIR}"
 
-# Verificar se o arquivo existe
+# Caminho absoluto e basename para o container
 if [ ! -f "${BACKUP_FILE}" ]; then
-    echo "Erro: Arquivo não encontrado: ${BACKUP_FILE}"
+    BACKUP_FILE="${PROJECT_DIR}/${BACKUP_FILE}"
+fi
+if [ ! -f "${BACKUP_FILE}" ]; then
+    echo "Erro: ficheiro não encontrado: $1"
     exit 1
 fi
 
-# Variáveis do banco
-DB_NAME="empresa_db"
-DB_USER="app_user"
-DB_PASSWORD="db_pass_123"
-# Dentro do container, usar localhost
-DB_HOST="localhost"
+BN=$(basename "${BACKUP_FILE}")
+echo "A restaurar: ${BN} (no container: /backups/${BN})"
 
-echo "Iniciando restauração do banco de dados..."
-echo "Banco: ${DB_NAME}"
-echo "Arquivo: ${BACKUP_FILE}"
-
-# Confirmar restauração
-read -p "ATENÇÃO: Isso irá sobrescrever o banco atual. Continuar? (s/N): " confirm
-if [ "$confirm" != "s" ] && [ "$confirm" != "S" ]; then
-    echo "Restauração cancelada."
-    exit 0
+# Copiar para o volume do container se ainda não estiver em ./backups
+if [[ "$(dirname "$(realpath "${BACKUP_FILE}")")" != "$(realpath "${PROJECT_DIR}/backups")" ]]; then
+    mkdir -p "${PROJECT_DIR}/backups"
+    cp "${BACKUP_FILE}" "${PROJECT_DIR}/backups/${BN}"
+    BACKUP_FILE="${PROJECT_DIR}/backups/${BN}"
 fi
 
-# Descompactar se necessário
-if [[ "${BACKUP_FILE}" == *.gz ]]; then
-    echo "Descompactando backup..."
-    TEMP_FILE=$(mktemp)
-    gunzip -c "${BACKUP_FILE}" > "${TEMP_FILE}"
-    BACKUP_FILE="${TEMP_FILE}"
-fi
-
-# Restaurar banco
-echo "Restaurando banco de dados..."
-PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" < "${BACKUP_FILE}"
-
-# Limpar arquivo temporário se foi criado
-if [ -n "${TEMP_FILE}" ] && [ -f "${TEMP_FILE}" ]; then
-    rm "${TEMP_FILE}"
-fi
-
-echo "Restauração concluída com sucesso!"
+# Executar restore dentro do container
+docker-compose exec -T database /usr/local/bin/restore_db.sh "/backups/${BN}" 2>/dev/null || {
+    echo "Fallback: psql direto (host)..."
+    read -p "Sobrescrever banco? (s/N): " ok
+    [ "$ok" = "s" ] || [ "$ok" = "S" ] || exit 0
+    gunzip -c "${BACKUP_FILE}" | PGPASSWORD=db_pass_123 psql -h 127.0.0.1 -p 5432 -U app_user -d empresa_db
+}
+echo "Restauração concluída."
+echo ""

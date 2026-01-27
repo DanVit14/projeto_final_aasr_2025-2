@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
 
 COPY iptables.rules /etc/iptables/rules.v4
 COPY firewall.sh /usr/local/bin/firewall.sh
+COPY rsyslog-forward.conf /etc/rsyslog.d/99-forward.conf
 
 RUN chmod +x /usr/local/bin/firewall.sh
 

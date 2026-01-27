@@ -162,13 +162,14 @@ rm -f "${HASH_DIR}/virtual-alias-maps.hash" "${HASH_DIR}/virtual-alias-maps.hash
 ldap_result=$(query_ldap "(&(objectClass=person)(mail=*))" "mail")
 query_exit=$?
 if [ $query_exit -eq 0 ] && [ -n "$ldap_result" ] && echo "$ldap_result" | grep -q "^mail:"; then
-    # Usar process substitution para evitar problema de subshell
     {
         echo "$ldap_result" | grep "^mail:" | cut -d: -f2 | tr -d " " | while read email; do
             if [ -n "$email" ]; then
                 echo "$email $email"
             fi
         done
+        # Alias do plano: suporte@empresa.local -> admin@empresa.local
+        echo "suporte@empresa.local admin@empresa.local"
     } > "${HASH_DIR}/virtual-alias-maps.hash"
 else
     echo "   ⚠ Não foi possível consultar LDAP, criando arquivo vazio"

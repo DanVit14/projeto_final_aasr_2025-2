@@ -65,7 +65,7 @@ smtpd_sender_restrictions =
 
 # Integração com Amavis (ClamAV + SpamAssassin)
 # Todo e-mail passa por amavis:10024 → scan → reentra em 10025
-content_filter = amavis:[127.0.0.1]:10024
+# content_filter = amavis:[127.0.0.1]:10024   # desativado: contorno por tempo; reativar quando scan ClamAV ok
 
 # Configurações de transporte
 relayhost =

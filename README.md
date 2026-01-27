@@ -112,6 +112,8 @@ docker-compose exec [servico] bash
 
 - **PLANO_PROJETO.md** - Plano completo de implementação
 - **REQUIREMENTS.md** - Lista de dependências e requisitos
+- **docs/TOPOLOGIA.md** - Diagrama de topologia de rede
+- **docs/OPCAO_SEM_SCAN_ANTIVIRUS.md** - Nota sobre antivírus desativado
 - **docs/** - Documentação técnica detalhada
 
 ## 🔧 Desenvolvimento
@@ -146,6 +148,7 @@ docker-compose exec [servico] bash
 
 ## ⚠️ Notas Importantes
 
+- **Antivírus:** O scan de vírus (ClamAV) está temporariamente desativado (content_filter comentado no Postfix). Entrega de correio e antispam estão operacionais. Ver **docs/OPCAO_SEM_SCAN_ANTIVIRUS.md**.
 - Não configurar replicação master-slave no banco de dados
 - Todos os arquivos devem estar versionados no Git
 - Documentar todas as decisões e problemas encontrados

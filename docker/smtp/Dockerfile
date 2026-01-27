@@ -64,6 +64,7 @@ RUN echo "TLS_REQCERT never" >> /etc/ldap/ldap.conf
 COPY main.cf /etc/postfix/main.cf
 COPY master.cf /etc/postfix/master.cf
 COPY rsyslog-mail.conf /etc/rsyslog.d/50-mail.conf
+COPY rsyslog-forward.conf /etc/rsyslog.d/99-forward.conf
 COPY ldap/ /etc/postfix/ldap/
 COPY update-ldap-maps.sh /usr/local/bin/update-ldap-maps.sh
 COPY dovecot.conf /etc/dovecot/dovecot.conf
