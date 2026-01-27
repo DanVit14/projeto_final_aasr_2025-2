@@ -36,7 +36,7 @@ services:
       aasr_net:
         ipv4_address: 10.0.1.20
     ports:
-      - "22:22"     # SSH
+      - "2222:22"   # SSH (2222 no host para não conflitar com SSH da VM em 22)
     volumes:
       - ./docker/firewall/iptables.rules:/etc/iptables/rules.v4:ro
       - ./docker/firewall/firewall.sh:/usr/local/bin/firewall.sh:ro
