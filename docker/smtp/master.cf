@@ -3,6 +3,12 @@
 # Serviço pickup (necessário para postdrop/sendmail funcionar)
 pickup    unix  n       -       n       60      1       pickup
 
+# Serviço qmgr (gerenciador de fila - necessário para processar e-mails)
+qmgr      unix  n       -       n       300     1       qmgr
+
+# Serviço showq (necessário para postqueue funcionar)
+showq     unix  n       -       n       -       -       showq
+
 # Serviço virtual (entrega para domínios virtuais/Maildir)
 virtual   unix  -       n       n       -       -       virtual
 

@@ -128,16 +128,29 @@ echo "Iniciando Postfix..."
 /usr/sbin/postfix stop 2>/dev/null || true
 sleep 1
 
-# Garantir que os diretórios de queue existem antes de iniciar
-mkdir -p /var/spool/postfix/public /var/spool/postfix/maildrop
-chown postfix:postfix /var/spool/postfix/public /var/spool/postfix/maildrop
+# Garantir que TODOS os diretórios de queue existem antes de iniciar
+echo "   Criando diretórios de queue do Postfix..."
+mkdir -p /var/spool/postfix/public \
+    /var/spool/postfix/maildrop \
+    /var/spool/postfix/incoming \
+    /var/spool/postfix/active \
+    /var/spool/postfix/deferred \
+    /var/spool/postfix/hold \
+    /var/spool/postfix/bounce \
+    /var/spool/postfix/pid \
+    /var/spool/postfix/private \
+    /var/spool/postfix/var/lib/sasl2
+
+# Configurar propriedade e permissões
+chown -R postfix:postfix /var/spool/postfix
 chmod 755 /var/spool/postfix/public
 chmod 1777 /var/spool/postfix/maildrop
-
-# Criar arquivo de socket do pickup (se necessário)
-touch /var/spool/postfix/public/pickup 2>/dev/null || true
-chown postfix:postfix /var/spool/postfix/public/pickup 2>/dev/null || true
-chmod 644 /var/spool/postfix/public/pickup 2>/dev/null || true
+chmod 700 /var/spool/postfix/private
+chmod 755 /var/spool/postfix/incoming
+chmod 755 /var/spool/postfix/active
+chmod 755 /var/spool/postfix/deferred
+chmod 755 /var/spool/postfix/hold
+chmod 755 /var/spool/postfix/bounce
 
 # Iniciar Postfix
 echo "   Executando: postfix start"
