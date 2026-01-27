@@ -27,13 +27,17 @@ echo "3. Teste com bash TCP:"
 docker-compose exec smtp bash -c 'timeout 2 bash -c "exec 3<>/dev/tcp/127.0.0.1/25 && cat <&3" 2>&1' | head -3 || echo "   Falhou"
 echo ""
 
-# Teste 4: Verificar se há resposta mesmo que não apareça
+# Teste 4: Verificar se há resposta (usando nc com timeout)
 echo "4. Teste capturando qualquer saída:"
-RESPONSE=$(timeout 3 docker-compose exec -T smtp bash -c 'echo "QUIT" | nc localhost 25 2>&1' 2>&1)
+RESPONSE=$(timeout 3 docker-compose exec -T smtp bash -c 'echo "QUIT" | nc -w 1 localhost 25 2>&1' 2>&1 || echo "timeout")
 echo "   Resposta capturada:"
-echo "$RESPONSE" | head -5 | sed 's/^/   /'
-if [ -z "$RESPONSE" ]; then
-    echo "   (Nenhuma resposta - Postfix pode não estar respondendo)"
+if [ -n "$RESPONSE" ] && [ "$RESPONSE" != "timeout" ]; then
+    echo "$RESPONSE" | head -5 | sed 's/^/   /'
+    if echo "$RESPONSE" | grep -q "220"; then
+        echo -e "   \033[0;32m✓ Postfix está respondendo!\033[0m"
+    fi
+else
+    echo "   (Timeout ou nenhuma resposta)"
 fi
 echo ""
 
