@@ -22,6 +22,8 @@ if [ ! -f "/var/lib/samba/private/sam.ldb" ]; then
     # Não remover smb.conf.template pois está montado como volume read-only
     rm -f /etc/samba/smb.conf
     /usr/local/bin/provision.sh
+    # Configurar LDAP para permitir autenticação simples (após provisionamento)
+    /usr/local/bin/fix_ldap_auth.sh
     # Após provisionamento, adicionar compartilhamentos ao smb.conf gerado
     if [ -f "/etc/samba/smb.conf" ]; then
         echo "" >> /etc/samba/smb.conf

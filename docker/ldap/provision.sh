@@ -84,6 +84,28 @@ echo "Compartilhamento Privado - Apenas usuários autenticados" > /shared/privat
 setfacl -m g:"${DOMAIN_UP%%.*}\\Users":rwx /shared/private 2>/dev/null || true
 setfacl -m g:"${DOMAIN_UP%%.*}\\Admins":rwx /shared/private 2>/dev/null || true
 
+# Configurar LDAP para permitir autenticação simples (para ambiente de teste)
+echo "Configurando LDAP para permitir autenticação simples..."
+# Permitir autenticação simples sem criptografia obrigatória
+# Isso é necessário para o Postfix poder autenticar via LDAP
+samba-tool domain passwordsettings set --min-pwd-age=0 2>/dev/null || true
+
+# Configurar políticas de segurança do LDAP para permitir simple bind
+# Usar ldbmodify para modificar a configuração do LDAP
+cat > /tmp/ldap_auth.ldif <<EOF
+dn: CN=Default Domain Policy,CN=System,${DOMAIN_DN}
+changetype: modify
+replace: dSHeuristics
+dSHeuristics: 0000002
+EOF
+
+ldbmodify -H /var/lib/samba/private/sam.ldb /tmp/ldap_auth.ldif 2>/dev/null || \
+echo "   Nota: Configuração de segurança LDAP pode precisar de ajuste manual"
+
+rm -f /tmp/ldap_auth.ldif
+
 echo ""
 echo "Provisionamento concluído!"
+echo ""
+echo "NOTA: Para ambiente de produção, configure LDAPS adequadamente."
 echo ""
