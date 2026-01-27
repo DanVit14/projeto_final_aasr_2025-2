@@ -9,8 +9,8 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 echo "A subir serviços (docker-compose up -d)..."
 docker-compose up -d
 
-echo "A aguardar Postfix ficar pronto (até 180s)..."
-max=60
+echo "A aguardar Postfix ficar pronto (até 45s)..."
+max=15
 n=0
 while [ $n -lt $max ]; do
   # Verificar se o Postfix está a responder dentro do próprio container SMTP
@@ -23,9 +23,8 @@ while [ $n -lt $max ]; do
 done
 
 if [ $n -eq $max ]; then
-  echo "AVISO: Postfix não respondeu após 180s. Testes podem falhar."
-  echo "Verificando status do Postfix:"
-  docker-compose exec -T smtp postfix status || true
+  echo "AVISO: Postfix não respondeu após 45s. Testes podem falhar."
+  echo "Execute './scripts/check_postfix_detailed.sh' para diagnosticar."
 else
   echo "A aguardar mais 5s para estabilizar..."
   sleep 5
