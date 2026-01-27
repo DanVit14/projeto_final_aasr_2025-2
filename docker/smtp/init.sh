@@ -131,13 +131,36 @@ chown root:root /etc/postfix/main.cf /etc/postfix/master.cf 2>/dev/null || true
 echo "Atualizando definições de vírus do ClamAV..."
 freshclam >/dev/null 2>&1 &
 
+# Diretório do socket do clamd (o daemon não cria sozinho em ambiente sem systemd)
+for d in /var/run/clamav /run/clamav; do
+    mkdir -p "$d" 2>/dev/null
+    chown clamav:clamav "$d" 2>/dev/null || chown clamav:root "$d" 2>/dev/null || true
+done
+
+# ClamAV não sobe se não houver .cvd em /var/lib/clamav — esperar freshclam (até 90 s)
+CLAM_DB_DIR="${CLAM_DB_DIR:-/var/lib/clamav}"
+if [ -f /etc/clamav/clamd.conf ]; then
+    if [ ! -e "$CLAM_DB_DIR/main.cvd" ] && [ ! -e "$CLAM_DB_DIR/daily.cvd" ] && [ ! -e "$CLAM_DB_DIR/daily.cld" ]; then
+        echo "   Aguardando base do ClamAV (freshclam)..."
+        for i in $(seq 1 90); do
+            [ -e "$CLAM_DB_DIR/main.cvd" ] || [ -e "$CLAM_DB_DIR/daily.cvd" ] || [ -e "$CLAM_DB_DIR/daily.cld" ] && echo "   ✓ Base ClamAV encontrada" && break
+            sleep 1
+        done
+    fi
+fi
+
 # Iniciar serviços em background
 echo "Iniciando serviços auxiliares..."
 
-# ClamAV daemon (em background)
+# ClamAV daemon (em background) — precisa do dir do socket e, idealmente, da base já existir
 if [ -f /etc/clamav/clamd.conf ]; then
-    clamd >/dev/null 2>&1 &
-    echo "   ✓ ClamAV iniciado"
+    clamd 2>/tmp/clamd_start.log &
+    sleep 2
+    if pgrep -x clamd >/dev/null 2>&1; then
+        echo "   ✓ ClamAV (clamd) iniciado"
+    else
+        echo "   ⚠ clamd pode ter falhado (ver: tail /tmp/clamd_start.log)"
+    fi
 fi
 
 # SpamAssassin (atualizar regras em background)
