@@ -1,10 +1,10 @@
 # Configuração LDAP para autenticação de remetentes
-# Usando LDAP normal (389) com StartTLS
+# Usando LDAPS (636) diretamente - StartTLS não está funcionando
 server_host = ldap
-server_port = 389
+server_port = 636
 version = 3
 bind = yes
-start_tls = yes
+start_tls = no
 tls_require_cert = no
 bind_dn = cn=Administrator,cn=Users,dc=empresa,dc=local
 bind_pw = Admin@123
