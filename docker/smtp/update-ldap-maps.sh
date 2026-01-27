@@ -18,6 +18,10 @@ mkdir -p "$HASH_DIR" || {
     exit 1
 }
 
+# Garantir permissões corretas
+chown root:root "$HASH_DIR" 2>/dev/null || true
+chmod 755 "$HASH_DIR" 2>/dev/null || true
+
 # Função para consultar LDAP
 query_ldap() {
     local filter="$1"
@@ -63,30 +67,41 @@ echo ""
 
 # 1. Atualizar virtual-mailbox-domains.hash
 echo "1. Atualizando virtual-mailbox-domains.hash..."
-> "${HASH_DIR}/virtual-mailbox-domains.hash"
+rm -f "${HASH_DIR}/virtual-mailbox-domains.hash" "${HASH_DIR}/virtual-mailbox-domains.hash.db" 2>/dev/null
 ldap_result=$(query_ldap "(mail=*)" "mail")
 if [ $? -eq 0 ] && [ -n "$ldap_result" ]; then
-    echo "$ldap_result" | grep "^mail:" | cut -d: -f2 | tr -d " " | cut -d@ -f2 | sort -u | while read domain; do
-        if [ -n "$domain" ]; then
-            echo "$domain $domain" >> "${HASH_DIR}/virtual-mailbox-domains.hash"
-        fi
-    done
-    postmap "${HASH_DIR}/virtual-mailbox-domains.hash" 2>/dev/null || true
-    domain_count=$(wc -l < "${HASH_DIR}/virtual-mailbox-domains.hash" 2>/dev/null || echo "0")
-    echo "   ✓ Domínios atualizados: $domain_count"
+    # Usar process substitution para evitar problema de subshell
+    {
+        echo "$ldap_result" | grep "^mail:" | cut -d: -f2 | tr -d " " | cut -d@ -f2 | sort -u | while read domain; do
+            if [ -n "$domain" ]; then
+                echo "$domain $domain"
+            fi
+        done
+    } > "${HASH_DIR}/virtual-mailbox-domains.hash"
 else
     echo "   ⚠ Não foi possível consultar LDAP, criando entrada padrão"
-    echo "empresa.local empresa.local" >> "${HASH_DIR}/virtual-mailbox-domains.hash"
-    postmap "${HASH_DIR}/virtual-mailbox-domains.hash" 2>/dev/null || true
-    echo "   ✓ Arquivo criado com entrada padrão"
+    echo "empresa.local empresa.local" > "${HASH_DIR}/virtual-mailbox-domains.hash"
+fi
+
+# Garantir que o arquivo existe e fazer postmap
+if [ -f "${HASH_DIR}/virtual-mailbox-domains.hash" ]; then
+    postmap "${HASH_DIR}/virtual-mailbox-domains.hash" 2>&1
+    if [ -f "${HASH_DIR}/virtual-mailbox-domains.hash.db" ]; then
+        domain_count=$(wc -l < "${HASH_DIR}/virtual-mailbox-domains.hash" 2>/dev/null || echo "0")
+        echo "   ✓ Domínios atualizados: $domain_count"
+    else
+        echo "   ⚠ postmap falhou, mas arquivo .hash existe"
+    fi
+else
+    echo "   ✗ ERRO: Arquivo não foi criado"
 fi
 
 # 2. Atualizar virtual-mailbox-maps.hash
 echo "2. Atualizando virtual-mailbox-maps.hash..."
-> "${HASH_DIR}/virtual-mailbox-maps.hash"
+rm -f "${HASH_DIR}/virtual-mailbox-maps.hash" "${HASH_DIR}/virtual-mailbox-maps.hash.db" 2>/dev/null
 ldap_result=$(query_ldap "(&(objectClass=person)(mail=*))" "mail sAMAccountName")
 if [ $? -eq 0 ] && [ -n "$ldap_result" ]; then
-    # Processar resultado do LDAP usando awk para manter variáveis no mesmo shell
+    # Processar resultado do LDAP usando awk
     echo "$ldap_result" | awk '
     BEGIN { email=""; username="" }
     /^mail: / { email=$2 }
@@ -106,38 +121,59 @@ if [ $? -eq 0 ] && [ -n "$ldap_result" ]; then
             domain = parts[2]
             print email " " domain "/" username "/Maildir/"
         }
-    }' >> "${HASH_DIR}/virtual-mailbox-maps.hash"
-    postmap "${HASH_DIR}/virtual-mailbox-maps.hash" 2>/dev/null || true
-    mailbox_count=$(wc -l < "${HASH_DIR}/virtual-mailbox-maps.hash" 2>/dev/null || echo "0")
-    echo "   ✓ Caixas de correio atualizadas: $mailbox_count"
+    }' > "${HASH_DIR}/virtual-mailbox-maps.hash"
 else
-    echo "   ⚠ Não foi possível consultar LDAP, arquivo será criado vazio"
-    postmap "${HASH_DIR}/virtual-mailbox-maps.hash" 2>/dev/null || true
-    echo "   ✓ Arquivo criado (vazio)"
+    echo "   ⚠ Não foi possível consultar LDAP, criando arquivo vazio"
+    touch "${HASH_DIR}/virtual-mailbox-maps.hash"
+fi
+
+# Garantir que o arquivo existe e fazer postmap
+if [ -f "${HASH_DIR}/virtual-mailbox-maps.hash" ]; then
+    postmap "${HASH_DIR}/virtual-mailbox-maps.hash" 2>&1
+    if [ -f "${HASH_DIR}/virtual-mailbox-maps.hash.db" ]; then
+        mailbox_count=$(wc -l < "${HASH_DIR}/virtual-mailbox-maps.hash" 2>/dev/null || echo "0")
+        echo "   ✓ Caixas de correio atualizadas: $mailbox_count"
+    else
+        echo "   ⚠ postmap falhou, mas arquivo .hash existe"
+    fi
+else
+    echo "   ✗ ERRO: Arquivo não foi criado"
 fi
 
 # 3. Atualizar virtual-alias-maps.hash
 echo "3. Atualizando virtual-alias-maps.hash..."
-> "${HASH_DIR}/virtual-alias-maps.hash"
+rm -f "${HASH_DIR}/virtual-alias-maps.hash" "${HASH_DIR}/virtual-alias-maps.hash.db" 2>/dev/null
 ldap_result=$(query_ldap "(&(objectClass=person)(mail=*))" "mail")
 if [ $? -eq 0 ] && [ -n "$ldap_result" ]; then
-    echo "$ldap_result" | grep "^mail:" | cut -d: -f2 | tr -d " " | while read email; do
-        if [ -n "$email" ]; then
-            echo "$email $email" >> "${HASH_DIR}/virtual-alias-maps.hash"
-        fi
-    done
-    postmap "${HASH_DIR}/virtual-alias-maps.hash" 2>/dev/null || true
-    alias_count=$(wc -l < "${HASH_DIR}/virtual-alias-maps.hash" 2>/dev/null || echo "0")
-    echo "   ✓ Aliases atualizados: $alias_count"
+    # Usar process substitution para evitar problema de subshell
+    {
+        echo "$ldap_result" | grep "^mail:" | cut -d: -f2 | tr -d " " | while read email; do
+            if [ -n "$email" ]; then
+                echo "$email $email"
+            fi
+        done
+    } > "${HASH_DIR}/virtual-alias-maps.hash"
 else
-    echo "   ⚠ Não foi possível consultar LDAP, arquivo será criado vazio"
-    postmap "${HASH_DIR}/virtual-alias-maps.hash" 2>/dev/null || true
-    echo "   ✓ Arquivo criado (vazio)"
+    echo "   ⚠ Não foi possível consultar LDAP, criando arquivo vazio"
+    touch "${HASH_DIR}/virtual-alias-maps.hash"
+fi
+
+# Garantir que o arquivo existe e fazer postmap
+if [ -f "${HASH_DIR}/virtual-alias-maps.hash" ]; then
+    postmap "${HASH_DIR}/virtual-alias-maps.hash" 2>&1
+    if [ -f "${HASH_DIR}/virtual-alias-maps.hash.db" ]; then
+        alias_count=$(wc -l < "${HASH_DIR}/virtual-alias-maps.hash" 2>/dev/null || echo "0")
+        echo "   ✓ Aliases atualizados: $alias_count"
+    else
+        echo "   ⚠ postmap falhou, mas arquivo .hash existe"
+    fi
+else
+    echo "   ✗ ERRO: Arquivo não foi criado"
 fi
 
 # 4. Atualizar sender-login-maps.hash
 echo "4. Atualizando sender-login-maps.hash..."
-> "${HASH_DIR}/sender-login-maps.hash"
+rm -f "${HASH_DIR}/sender-login-maps.hash" "${HASH_DIR}/sender-login-maps.hash.db" 2>/dev/null
 ldap_result=$(query_ldap "(&(objectClass=person)(mail=*))" "mail sAMAccountName")
 if [ $? -eq 0 ] && [ -n "$ldap_result" ]; then
     echo "$ldap_result" | awk '
@@ -155,15 +191,28 @@ if [ $? -eq 0 ] && [ -n "$ldap_result" ]; then
         if (email != "" && username != "") {
             print email " " username
         }
-    }' >> "${HASH_DIR}/sender-login-maps.hash"
-    postmap "${HASH_DIR}/sender-login-maps.hash" 2>/dev/null || true
-    sender_count=$(wc -l < "${HASH_DIR}/sender-login-maps.hash" 2>/dev/null || echo "0")
-    echo "   ✓ Sender login maps atualizados: $sender_count"
+    }' > "${HASH_DIR}/sender-login-maps.hash"
 else
-    echo "   ⚠ Não foi possível consultar LDAP, arquivo será criado vazio"
-    postmap "${HASH_DIR}/sender-login-maps.hash" 2>/dev/null || true
-    echo "   ✓ Arquivo criado (vazio)"
+    echo "   ⚠ Não foi possível consultar LDAP, criando arquivo vazio"
+    touch "${HASH_DIR}/sender-login-maps.hash"
+fi
+
+# Garantir que o arquivo existe e fazer postmap
+if [ -f "${HASH_DIR}/sender-login-maps.hash" ]; then
+    postmap "${HASH_DIR}/sender-login-maps.hash" 2>&1
+    if [ -f "${HASH_DIR}/sender-login-maps.hash.db" ]; then
+        sender_count=$(wc -l < "${HASH_DIR}/sender-login-maps.hash" 2>/dev/null || echo "0")
+        echo "   ✓ Sender login maps atualizados: $sender_count"
+    else
+        echo "   ⚠ postmap falhou, mas arquivo .hash existe"
+    fi
+else
+    echo "   ✗ ERRO: Arquivo não foi criado"
 fi
 
 echo ""
-echo "✓ Todos os arquivos hash foram atualizados!"
+echo "Verificando arquivos criados..."
+ls -la "${HASH_DIR}"/*.hash 2>/dev/null | head -4 || echo "   ⚠ Nenhum arquivo .hash encontrado"
+ls -la "${HASH_DIR}"/*.db 2>/dev/null | head -4 || echo "   ⚠ Nenhum arquivo .db encontrado"
+echo ""
+echo "✓ Processo de atualização concluído!"
