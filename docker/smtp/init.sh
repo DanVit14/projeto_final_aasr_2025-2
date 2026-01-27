@@ -109,14 +109,14 @@ chown postfix:postdrop /var/spool/postfix/public /var/spool/postfix/maildrop
 chmod 2755 /var/spool/postfix/public  # 2755 = rwxr-sr-x (setgid)
 chmod 2775 /var/spool/postfix/maildrop  # 2775 = rwxrwsr-x (setgid + group write)
 
-# Outros diretórios de queue devem ser postfix:postfix
+# Outros diretórios de queue devem ser postfix:postfix (pid deve ficar root:root)
 chown postfix:postfix /var/spool/postfix/incoming \
     /var/spool/postfix/active \
     /var/spool/postfix/deferred \
     /var/spool/postfix/hold \
     /var/spool/postfix/bounce \
-    /var/spool/postfix/pid \
     /var/spool/postfix/private 2>/dev/null || true
+chown root:root /var/spool/postfix/pid 2>/dev/null || true
 chmod 755 /var/spool/postfix/incoming
 chmod 755 /var/spool/postfix/active
 chmod 755 /var/spool/postfix/deferred
@@ -245,14 +245,14 @@ chown postfix:postdrop /var/spool/postfix/public /var/spool/postfix/maildrop
 chmod 2755 /var/spool/postfix/public  # 2755 = rwxr-sr-x (setgid)
 chmod 2775 /var/spool/postfix/maildrop  # 2775 = rwxrwsr-x (setgid + group write)
 
-# Outros diretórios de queue devem ser postfix:postfix
+# Outros diretórios de queue devem ser postfix:postfix (pid deve ficar root:root)
 chown postfix:postfix /var/spool/postfix/incoming \
     /var/spool/postfix/active \
     /var/spool/postfix/deferred \
     /var/spool/postfix/hold \
     /var/spool/postfix/bounce \
-    /var/spool/postfix/pid \
     /var/spool/postfix/private 2>/dev/null || true
+chown root:root /var/spool/postfix/pid 2>/dev/null || true
 
 chmod 755 /var/spool/postfix/incoming
 chmod 755 /var/spool/postfix/active
