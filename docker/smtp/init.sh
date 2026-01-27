@@ -185,10 +185,15 @@ if [ -n "$CLAMD_SOCKET" ]; then
     echo "   ✓ Socket clamd: $CLAMD_SOCKET"
 fi
 
+# Amavis precisa acessar o socket do clamd — usuário amavis no grupo clamav
+if getent group clamav >/dev/null 2>&1 && getent passwd amavis >/dev/null 2>&1; then
+    usermod -aG clamav amavis 2>/dev/null || true
+fi
+
 # Amavis (ClamAV + SpamAssassin) — só sobe depois do clamd estar ouvindo
 if [ -f /etc/amavis/conf.d/50-user ]; then
     if [ -n "$CLAMD_SOCKET" ]; then
-        amavisd-new start >/dev/null 2>&1 && echo "   ✓ Amavis iniciado (10024)" || echo "   ⚠ Amavis falhou ao iniciar (verificar logs: journalctl -u amavis ou /var/log/amavis)"
+        amavisd-new start >/dev/null 2>&1 && echo "   ✓ Amavis iniciado (10024)" || echo "   ⚠ Amavis falhou ao iniciar (docker-compose exec smtp amavisd-new debug 2>&1 | head -50)"
     else
         echo "   ⚠ Amavis não iniciado: clamd socket não apareceu em 30s (clamd pode não ter subido)"
     fi
