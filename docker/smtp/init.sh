@@ -51,11 +51,27 @@ mkdir -p /var/lib/amavis/virusmails
 mkdir -p /var/spool/postfix/var/lib/sasl2
 mkdir -p /var/run/dovecot
 
+# Criar diretórios do Postfix queue (necessário para postdrop funcionar)
+mkdir -p /var/spool/postfix/public
+mkdir -p /var/spool/postfix/maildrop
+mkdir -p /var/spool/postfix/incoming
+mkdir -p /var/spool/postfix/active
+mkdir -p /var/spool/postfix/deferred
+mkdir -p /var/spool/postfix/hold
+mkdir -p /var/spool/postfix/bounce
+mkdir -p /var/spool/postfix/pid
+
 # Configurar permissões
 chown -R postfix:postfix /var/mail/vhosts
+chown -R postfix:postfix /var/spool/postfix
 chown -R postfix:postfix /var/spool/postfix/var/lib/sasl2
 chown -R amavis:amavis /var/lib/amavis 2>/dev/null || true
 chown -R dovecot:dovecot /var/run/dovecot 2>/dev/null || true
+
+# Permissões específicas para postdrop
+chmod 755 /var/spool/postfix/public
+chmod 755 /var/spool/postfix/maildrop
+chmod 1777 /var/spool/postfix/maildrop  # Sticky bit para postdrop
 
 # Garantir que os arquivos de configuração do Postfix sejam do root
 chown root:root /etc/postfix/main.cf /etc/postfix/master.cf 2>/dev/null || true
@@ -111,6 +127,12 @@ echo "Iniciando Postfix..."
 # Parar Postfix se já estiver rodando (limpeza)
 /usr/sbin/postfix stop 2>/dev/null || true
 sleep 1
+
+# Garantir que os diretórios de queue existem antes de iniciar
+mkdir -p /var/spool/postfix/public /var/spool/postfix/maildrop
+chown postfix:postfix /var/spool/postfix/public /var/spool/postfix/maildrop
+chmod 755 /var/spool/postfix/public
+chmod 1777 /var/spool/postfix/maildrop
 
 # Iniciar Postfix
 echo "   Executando: postfix start"

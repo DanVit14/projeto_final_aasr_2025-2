@@ -25,12 +25,22 @@ RUN apt-get update && apt-get install -y \
 # Criar diretórios necessários
 RUN mkdir -p /var/mail/vhosts/empresa.local \
     /var/spool/postfix/var/lib/sasl2 \
+    /var/spool/postfix/public \
+    /var/spool/postfix/maildrop \
+    /var/spool/postfix/incoming \
+    /var/spool/postfix/active \
+    /var/spool/postfix/deferred \
+    /var/spool/postfix/hold \
+    /var/spool/postfix/bounce \
+    /var/spool/postfix/pid \
     /etc/postfix/ldap \
     /var/lib/amavis/tmp
 
 # Configurar permissões
-RUN chown -R postfix:postfix /var/spool/postfix/var/lib/sasl2 \
-    && chmod 755 /var/mail/vhosts
+RUN chown -R postfix:postfix /var/spool/postfix \
+    && chmod 755 /var/mail/vhosts \
+    && chmod 755 /var/spool/postfix/public \
+    && chmod 1777 /var/spool/postfix/maildrop
 
 # Atualizar definições de vírus do ClamAV (pode falhar, mas não é crítico)
 RUN freshclam || echo "ClamAV definitions will be updated on first run"
