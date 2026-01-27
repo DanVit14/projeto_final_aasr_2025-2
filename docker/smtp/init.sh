@@ -108,6 +108,37 @@ echo "Iniciando Postfix..."
 # Verificar configuração antes de iniciar
 /usr/sbin/postfix check
 
-# Iniciar Postfix em foreground para manter o container rodando
-# e ver os logs em tempo real
-exec /usr/sbin/postfix start-fg
+# Parar Postfix se já estiver rodando (limpeza)
+/usr/sbin/postfix stop 2>/dev/null || true
+sleep 1
+
+# Iniciar Postfix
+/usr/sbin/postfix start
+
+# Aguardar um pouco para o Postfix iniciar completamente
+sleep 3
+
+# Verificar se o Postfix iniciou corretamente
+if /usr/sbin/postfix status >/dev/null 2>&1; then
+    echo "   ✓ Postfix iniciado"
+    
+    # Verificar se o smtpd está rodando
+    if pgrep -f "smtpd.*smtp" >/dev/null; then
+        echo "   ✓ smtpd está rodando"
+    else
+        echo "   ⚠ smtpd não está rodando - tentando reiniciar"
+        /usr/sbin/postfix reload
+        sleep 2
+    fi
+else
+    echo "   ✗ Postfix não iniciou corretamente"
+    echo "   Verificando logs..."
+    tail -20 /var/log/mail.log 2>/dev/null || echo "   (logs não disponíveis)"
+fi
+
+echo ""
+echo "Mantendo container rodando..."
+echo ""
+
+# Manter o container rodando e mostrar logs
+tail -f /var/log/mail.log 2>/dev/null || exec /usr/sbin/postfix start-fg
