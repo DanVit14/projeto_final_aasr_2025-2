@@ -64,7 +64,6 @@ services:
       - smtp_data:/var/mail
       - smtp_vhosts:/var/mail/vhosts
       - clamav_data:/var/lib/clamav
-      - ./scripts/test_services.sh:/usr/local/bin/test_services.sh:ro
       # Não montar main.cf e master.cf como volumes para evitar problemas de propriedade
       # Eles são copiados no Dockerfile
     environment:
@@ -118,7 +117,7 @@ services:
       - SYS_TIME
     restart: unless-stopped
 
-  # Container 6: Cliente de Teste (Opcional)
+  # Container 6: Cliente de Teste
   cliente:
     build: ./docker/cliente
     container_name: cliente_teste
@@ -128,7 +127,8 @@ services:
         ipv4_address: 10.0.1.60
     volumes:
       - ./scripts/test_services.sh:/usr/local/bin/test_services.sh:ro
-    restart: "no"
+    command: sleep infinity
+    restart: unless-stopped
     depends_on:
       - ldap
       - smtp

@@ -21,8 +21,6 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     ldap-utils \
     netcat-openbsd \
-    postgresql-client \
-    chrony \
     && rm -rf /var/lib/apt/lists/*
 
 # Criar diretórios necessários
