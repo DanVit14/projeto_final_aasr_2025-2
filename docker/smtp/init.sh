@@ -12,25 +12,50 @@ DOMAIN="${DOMAIN:-empresa.local}"
 LDAP_SERVER="${LDAP_SERVER:-ldap}"
 LDAP_BASE="${LDAP_BASE:-dc=empresa,dc=local}"
 
+# Extrair e instalar certificado CA do LDAP
+echo "Extraindo certificado CA do LDAP..."
+LDAP_CA_CERT="/etc/ssl/certs/samba-ca.crt"
+# Tentar extrair o certificado CA do servidor LDAP
+if timeout 10 openssl s_client -connect ${LDAP_SERVER}:636 -showcerts </dev/null 2>/dev/null | \
+   sed -n '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/p' | \
+   grep -A 100 "Samba.*CA certificate" | \
+   sed -n '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/p' > "${LDAP_CA_CERT}" 2>/dev/null; then
+    if [ -s "${LDAP_CA_CERT}" ]; then
+        echo "   ✓ Certificado CA extraído"
+        # Adicionar ao bundle de certificados
+        cat "${LDAP_CA_CERT}" >> /etc/ssl/certs/ca-certificates.crt
+        update-ca-certificates >/dev/null 2>&1 || true
+        echo "   ✓ Certificado CA adicionado ao bundle"
+    else
+        echo "   ⚠ Certificado CA vazio, tentando método alternativo..."
+        # Método alternativo: extrair o segundo certificado (CA) da cadeia
+        timeout 10 openssl s_client -connect ${LDAP_SERVER}:636 -showcerts </dev/null 2>/dev/null | \
+            sed -n '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/p' | \
+            tail -n +$(($(grep -n "BEGIN CERTIFICATE" | tail -1 | cut -d: -f1) + 1)) > "${LDAP_CA_CERT}" 2>/dev/null || true
+        if [ -s "${LDAP_CA_CERT}" ]; then
+            cat "${LDAP_CA_CERT}" >> /etc/ssl/certs/ca-certificates.crt
+            update-ca-certificates >/dev/null 2>&1 || true
+            echo "   ✓ Certificado CA adicionado (método alternativo)"
+        fi
+    fi
+else
+    echo "   ⚠ Não foi possível extrair certificado CA automaticamente"
+    echo "   O Postfix usará tls_require_cert=no (sem verificação de certificado)"
+fi
+
 # Aguardar LDAP estar pronto
 echo "Aguardando LDAP estar disponível..."
 LDAP_READY=0
 for i in {1..15}; do
-    # Tentar LDAP normal com StartTLS (porta 389)
-    if ldapsearch -x -H ldap://${LDAP_SERVER}:389 -b "${LDAP_BASE}" -D "cn=Administrator,cn=Users,${LDAP_BASE}" -w "Admin@123" -ZZ >/dev/null 2>&1; then
-        echo "   ✓ LDAP está disponível (LDAP com StartTLS)"
-        LDAP_READY=1
-        break
-    fi
-    # Tentar LDAP normal sem StartTLS (pode falhar por autenticação forte, mas testa conectividade)
-    if ldapsearch -x -H ldap://${LDAP_SERVER}:389 -b "${LDAP_BASE}" -D "cn=Administrator,cn=Users,${LDAP_BASE}" -w "Admin@123" >/dev/null 2>&1; then
-        echo "   ✓ LDAP está acessível (LDAP normal - pode precisar StartTLS)"
-        LDAP_READY=1
-        break
-    fi
-    # Tentar LDAPS como último recurso
-    if ldapsearch -x -H ldaps://${LDAP_SERVER}:636 -b "${LDAP_BASE}" -D "cn=Administrator,cn=Users,${LDAP_BASE}" -w "Admin@123" >/dev/null 2>&1; then
+    # Tentar LDAPS primeiro (é o que vamos usar)
+    if ldapsearch -x -H ldaps://${LDAP_SERVER}:636 -b "${LDAP_BASE}" -D "cn=Administrator,cn=Users,${LDAP_BASE}" -w "Admin@123" -o nettimeout=5 >/dev/null 2>&1; then
         echo "   ✓ LDAP está disponível (LDAPS)"
+        LDAP_READY=1
+        break
+    fi
+    # Tentar LDAP normal com StartTLS (porta 389)
+    if ldapsearch -x -H ldap://${LDAP_SERVER}:389 -b "${LDAP_BASE}" -D "cn=Administrator,cn=Users,${LDAP_BASE}" -w "Admin@123" -ZZ -o nettimeout=5 >/dev/null 2>&1; then
+        echo "   ✓ LDAP está disponível (LDAP com StartTLS)"
         LDAP_READY=1
         break
     fi
