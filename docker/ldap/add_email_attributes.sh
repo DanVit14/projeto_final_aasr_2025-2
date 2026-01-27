@@ -9,41 +9,37 @@ DOMAIN_DN="dc=$(echo $DOMAIN | sed 's/\./,dc=/g')"
 
 echo "Adicionando atributos de e-mail aos usuários..."
 
-# Adicionar atributo mail ao usuário admin
-samba-tool user setpassword admin --newpassword="Admin@123" --must-change-at-next-login=no 2>/dev/null || true
-ldbmodify -H /var/lib/samba/private/sam.ldb <<EOF 2>/dev/null
+# Criar arquivo LDIF temporário
+TMP_LDIF=$(mktemp /tmp/add_emails_XXXXXX.ldif)
+
+cat > "$TMP_LDIF" <<EOF
 dn: CN=admin,CN=Users,${DOMAIN_DN}
 changetype: modify
 add: mail
 mail: admin@${DOMAIN}
 -
-EOF
-
-# Adicionar atributo mail ao usuário user1
-ldbmodify -H /var/lib/samba/private/sam.ldb <<EOF 2>/dev/null
 dn: CN=user1,CN=Users,${DOMAIN_DN}
 changetype: modify
 add: mail
 mail: user1@${DOMAIN}
 -
-EOF
-
-# Adicionar atributo mail ao usuário user2
-ldbmodify -H /var/lib/samba/private/sam.ldb <<EOF 2>/dev/null
 dn: CN=user2,CN=Users,${DOMAIN_DN}
 changetype: modify
 add: mail
 mail: user2@${DOMAIN}
 -
-EOF
-
-# Adicionar atributo mail ao Administrator
-ldbmodify -H /var/lib/samba/private/sam.ldb <<EOF 2>/dev/null
 dn: CN=Administrator,CN=Users,${DOMAIN_DN}
 changetype: modify
 add: mail
 mail: administrator@${DOMAIN}
 -
 EOF
+
+# Aplicar modificações usando ldbmodify
+echo "Aplicando modificações LDAP..."
+ldbmodify -H /var/lib/samba/private/sam.ldb "$TMP_LDIF" 2>&1
+
+# Limpar arquivo temporário
+rm -f "$TMP_LDIF"
 
 echo "Atributos de e-mail adicionados aos usuários!"
