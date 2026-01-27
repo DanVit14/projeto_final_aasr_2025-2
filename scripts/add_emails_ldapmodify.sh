@@ -15,7 +15,7 @@ if ! docker-compose ps | grep -q "ldap_ad.*Up"; then
     exit 1
 fi
 
-if ! docker-compose ps | grep -q "smtp.*Up"; then
+if ! docker-compose ps | grep -q "smtp_antivirus.*Up"; then
     echo "ERRO: Container SMTP não está rodando!"
     exit 1
 fi
@@ -50,7 +50,7 @@ mail: administrator@${DOMAIN}
 EOF
 
 echo "1. Copiando arquivo LDIF para o container SMTP..."
-docker cp "$TMP_LDIF" smtp:/tmp/add_emails.ldif
+docker cp "$TMP_LDIF" smtp_antivirus:/tmp/add_emails.ldif
 
 echo "2. Aplicando modificações usando ldapmodify do container SMTP..."
 docker-compose exec -T smtp ldapmodify -x -H ldaps://ldap:636 \

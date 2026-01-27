@@ -273,17 +273,20 @@ echo "   Verificando status..."
 if /usr/sbin/postfix status >/dev/null 2>&1; then
     echo "   ✓ Postfix está rodando"
     
-    # Verificar se o smtpd está rodando
-    if pgrep -f "smtpd.*smtp" >/dev/null; then
+    # Verificar se o smtpd está rodando (verificar processo smtpd)
+    if pgrep -x smtpd >/dev/null || pgrep -f "/usr/lib/postfix/sbin/smtpd" >/dev/null || pgrep -f "smtpd" >/dev/null; then
         echo "   ✓ smtpd está rodando"
     else
         echo "   ⚠ smtpd não está rodando - tentando reload"
         /usr/sbin/postfix reload
         sleep 3
-        if pgrep -f "smtpd.*smtp" >/dev/null; then
+        # Verificar novamente
+        if pgrep -x smtpd >/dev/null || pgrep -f "/usr/lib/postfix/sbin/smtpd" >/dev/null || pgrep -f "smtpd" >/dev/null; then
             echo "   ✓ smtpd iniciado após reload"
         else
-            echo "   ✗ smtpd ainda não está rodando"
+            echo "   ⚠ smtpd ainda não está rodando (pode ser normal se não houver conexões)"
+            echo "   Verificando processos do Postfix:"
+            ps aux | grep -E "(postfix|smtpd)" | grep -v grep | head -5
         fi
     fi
 else
