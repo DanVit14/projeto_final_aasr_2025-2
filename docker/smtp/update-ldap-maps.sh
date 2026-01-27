@@ -28,6 +28,7 @@ query_ldap() {
     local attributes="$2"
     local result=""
     local exit_code=0
+    local has_data=0
     
     # Tentar LDAPS primeiro
     result=$(ldapsearch -x -H ldaps://${LDAP_SERVER}:${LDAP_PORT} \
@@ -40,10 +41,14 @@ query_ldap() {
         ${attributes} 2>&1)
     exit_code=$?
     
-    # Verificar se funcionou (procurar por linhas que começam com atributo ou "dn:")
-    if [ $exit_code -eq 0 ] && [ -n "$result" ] && echo "$result" | grep -qE "^(dn|mail|sAMAccountName):"; then
-        echo "$result"
-        return 0
+    # Filtrar referências (linhas que começam com #) e verificar se há dados reais
+    if [ $exit_code -eq 0 ] && [ -n "$result" ]; then
+        # Remover linhas de referência e verificar se sobrou algo útil
+        filtered_result=$(echo "$result" | grep -v "^#")
+        if [ -n "$filtered_result" ] && echo "$filtered_result" | grep -qE "^(dn|mail|sAMAccountName):"; then
+            echo "$filtered_result"
+            return 0
+        fi
     fi
     
     # Tentar StartTLS se LDAPS falhou
@@ -58,10 +63,13 @@ query_ldap() {
         ${attributes} 2>&1)
     exit_code=$?
     
-    # Verificar se StartTLS funcionou
-    if [ $exit_code -eq 0 ] && [ -n "$result" ] && echo "$result" | grep -qE "^(dn|mail|sAMAccountName):"; then
-        echo "$result"
-        return 0
+    # Filtrar referências e verificar se há dados reais
+    if [ $exit_code -eq 0 ] && [ -n "$result" ]; then
+        filtered_result=$(echo "$result" | grep -v "^#")
+        if [ -n "$filtered_result" ] && echo "$filtered_result" | grep -qE "^(dn|mail|sAMAccountName):"; then
+            echo "$filtered_result"
+            return 0
+        fi
     fi
     
     # Se ambos falharam, retornar vazio
