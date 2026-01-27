@@ -131,270 +131,73 @@ chmod 700 /var/spool/postfix/private
 # Garantir que os arquivos de configuração do Postfix sejam do root
 chown root:root /etc/postfix/main.cf /etc/postfix/master.cf 2>/dev/null || true
 
-# Atualizar definições de vírus do ClamAV (em background)
-echo "Atualizando definições de vírus do ClamAV..."
-freshclam >/dev/null 2>&1 &
-
-# Diretório do socket do clamd (o daemon não cria sozinho em ambiente sem systemd)
-for d in /var/run/clamav /run/clamav; do
-    mkdir -p "$d" 2>/dev/null
-    chown clamav:clamav "$d" 2>/dev/null || chown clamav:root "$d" 2>/dev/null || true
-done
-
-# ClamAV não sobe se não houver .cvd em /var/lib/clamav — esperar freshclam (até 90 s)
-CLAM_DB_DIR="${CLAM_DB_DIR:-/var/lib/clamav}"
-if [ -f /etc/clamav/clamd.conf ]; then
-    if [ ! -e "$CLAM_DB_DIR/main.cvd" ] && [ ! -e "$CLAM_DB_DIR/daily.cvd" ] && [ ! -e "$CLAM_DB_DIR/daily.cld" ]; then
-        echo "   Aguardando base do ClamAV (freshclam)..."
-        for i in $(seq 1 90); do
-            [ -e "$CLAM_DB_DIR/main.cvd" ] || [ -e "$CLAM_DB_DIR/daily.cvd" ] || [ -e "$CLAM_DB_DIR/daily.cld" ] && echo "   ✓ Base ClamAV encontrada" && break
-            sleep 1
-        done
-    fi
-fi
-
-# Iniciar serviços em background
-echo "Iniciando serviços auxiliares..."
-
-# ClamAV daemon (em background) — precisa do dir do socket e, idealmente, da base já existir
-if [ -f /etc/clamav/clamd.conf ]; then
-    clamd 2>/tmp/clamd_start.log &
-    sleep 2
-    if pgrep -x clamd >/dev/null 2>&1; then
-        echo "   ✓ ClamAV (clamd) iniciado"
-    else
-        echo "   ⚠ clamd pode ter falhado (ver: tail /tmp/clamd_start.log)"
-    fi
-fi
-
-# SpamAssassin (atualizar regras em background)
-sa-update >/dev/null 2>&1 &
-echo "   ✓ SpamAssassin configurado"
-
-# Amavis depende do socket do clamd — aguardar até existir (até 30 s)
-CLAMD_SOCKET=""
-for s in /var/run/clamav/clamd.ctl /run/clamav/clamd.ctl /var/run/clamav/clamd.sock; do
-    [ -S "$s" ] && CLAMD_SOCKET="$s" && break
-done
-if [ -z "$CLAMD_SOCKET" ]; then
-    echo "   Aguardando socket do clamd (Amavis precisa dele)..."
-    for i in $(seq 1 30); do
-        for s in /var/run/clamav/clamd.ctl /run/clamav/clamd.ctl /var/run/clamav/clamd.sock; do
-            if [ -S "$s" ] 2>/dev/null; then CLAMD_SOCKET="$s"; break 2; fi
-        done
-        sleep 1
-    done
-fi
-if [ -n "$CLAMD_SOCKET" ]; then
-    echo "   ✓ Socket clamd: $CLAMD_SOCKET"
-fi
-
-# Amavis precisa acessar o socket do clamd — usuário amavis no grupo clamav
-if getent group clamav >/dev/null 2>&1 && getent passwd amavis >/dev/null 2>&1; then
-    usermod -aG clamav amavis 2>/dev/null || true
-fi
-
-# Amavis (ClamAV + SpamAssassin) — só sobe depois do clamd estar ouvindo
-# No Debian 12 o pacote amavisd-new instala o binário /usr/sbin/amavisd (não amavisd-new)
-AMAVISD_BIN=""
-for candidate in /usr/sbin/amavisd /usr/sbin/amavisd-new amavisd amavisd-new; do
-    if [ -x "$candidate" ] 2>/dev/null || command -v "$candidate" >/dev/null 2>&1; then
-        AMAVISD_BIN="$candidate"
-        break
-    fi
-done
-if [ -f /etc/amavis/conf.d/50-user ]; then
-    if [ -n "$CLAMD_SOCKET" ]; then
-        if [ -n "$AMAVISD_BIN" ]; then
-            if $AMAVISD_BIN start >/dev/null 2>&1; then
-                echo "   ✓ Amavis iniciado (10024)"
-            else
-                echo "   ⚠ Amavis falhou ao iniciar (docker-compose exec smtp $AMAVISD_BIN debug 2>&1 | head -50)"
-            fi
-        else
-            echo "   ⚠ Amavis: nenhum binário encontrado (/usr/sbin/amavisd ou amavisd-new)"
-        fi
-    else
-        echo "   ⚠ Amavis não iniciado: clamd socket não apareceu em 30s (clamd pode não ter subido)"
-    fi
-else
-    echo "   ⚠ Amavis: 50-user não encontrado"
-fi
-
-# Dovecot (em background)
-if [ -f /etc/dovecot/dovecot.conf ]; then
-    dovecot >/dev/null 2>&1 &
-    echo "   ✓ Dovecot iniciado"
-fi
-
-# Aguardar um pouco para serviços iniciarem
-sleep 5
-
-# Verificar configuração do Postfix
-echo "Verificando configuração do Postfix..."
-postfix check
-
-if [ $? -eq 0 ]; then
-    echo "   ✓ Configuração do Postfix OK"
-else
-    echo "   ⚠ Avisos na configuração do Postfix (verificar logs)"
-fi
-
-# Atualizar arquivos hash do LDAP antes de iniciar Postfix
-echo "Atualizando arquivos hash do LDAP..."
-# Garantir que o diretório existe
+# --- Postfix primeiro (porta 25 disponível em ~30–60 s); ClamAV/Amavis depois ---
+echo "Atualizando maps LDAP e iniciando Postfix..."
 mkdir -p /etc/postfix/ldap
 chown root:root /etc/postfix/ldap
 chmod 755 /etc/postfix/ldap
-
-# Aguardar um pouco para garantir que o LDAP está totalmente pronto
-sleep 3
-
-if [ -f /usr/local/bin/update-ldap-maps.sh ]; then
-    echo "   Executando script de atualização..."
-    /usr/local/bin/update-ldap-maps.sh 2>&1
-    EXIT_CODE=$?
-    if [ $EXIT_CODE -eq 0 ]; then
-        echo "   ✓ Script executado com sucesso"
-    else
-        echo "   ⚠ Script retornou código de erro: $EXIT_CODE"
-    fi
-else
-    echo "   ⚠ Script de atualização não encontrado"
-fi
-
-# Garantir que os arquivos existem (criar vazios se necessário)
-for file in virtual-mailbox-domains.hash virtual-mailbox-maps.hash virtual-alias-maps.hash sender-login-maps.hash; do
-    if [ ! -f "/etc/postfix/ldap/$file" ]; then
-        echo "   Criando arquivo vazio: $file"
-        touch "/etc/postfix/ldap/$file"
-    fi
-    # Criar arquivo .db se não existir
-    if [ ! -f "/etc/postfix/ldap/${file}.db" ]; then
-        postmap "/etc/postfix/ldap/$file" 2>/dev/null || true
-    fi
-done
-
-# Verificar se os arquivos foram criados
-if [ -f /etc/postfix/ldap/virtual-mailbox-domains.hash ]; then
-    echo "   ✓ Arquivos hash existem"
-    ls -la /etc/postfix/ldap/*.hash 2>/dev/null | head -4
-else
-    echo "   ✗ ERRO: Arquivos hash não foram criados!"
-fi
-
-# Iniciar Postfix
-echo "Iniciando Postfix..."
-
-# Verificar configuração antes de iniciar
 /usr/sbin/postfix check
-
-# Parar Postfix se já estiver rodando (limpeza)
+sleep 2
+if [ -f /usr/local/bin/update-ldap-maps.sh ]; then
+    /usr/local/bin/update-ldap-maps.sh 2>&1
+fi
+for file in virtual-mailbox-domains.hash virtual-mailbox-maps.hash virtual-alias-maps.hash sender-login-maps.hash; do
+    [ ! -f "/etc/postfix/ldap/$file" ] && touch "/etc/postfix/ldap/$file"
+    [ ! -f "/etc/postfix/ldap/${file}.db" ] && postmap "/etc/postfix/ldap/$file" 2>/dev/null || true
+done
 /usr/sbin/postfix stop 2>/dev/null || true
 sleep 1
-
-# Garantir que TODOS os diretórios de queue existem antes de iniciar
-echo "   Criando diretórios de queue do Postfix..."
-mkdir -p /var/spool/postfix/public \
-    /var/spool/postfix/maildrop \
-    /var/spool/postfix/incoming \
-    /var/spool/postfix/active \
-    /var/spool/postfix/deferred \
-    /var/spool/postfix/hold \
-    /var/spool/postfix/bounce \
-    /var/spool/postfix/pid \
-    /var/spool/postfix/private \
-    /var/spool/postfix/var/lib/sasl2
-
-# Configurar propriedade e permissões corretas
-# Diretório principal deve ser root:root
-chown root:root /var/spool/postfix
-chmod 755 /var/spool/postfix
-
-# public e maildrop devem ser postfix:postdrop com setgid para postdrop funcionar
-chown postfix:postdrop /var/spool/postfix/public /var/spool/postfix/maildrop
-chmod 2755 /var/spool/postfix/public  # 2755 = rwxr-sr-x (setgid)
-chmod 2775 /var/spool/postfix/maildrop  # 2775 = rwxrwsr-x (setgid + group write)
-
-# Outros diretórios de queue devem ser postfix:postfix (pid deve ficar root:root)
-chown postfix:postfix /var/spool/postfix/incoming \
-    /var/spool/postfix/active \
-    /var/spool/postfix/deferred \
-    /var/spool/postfix/hold \
-    /var/spool/postfix/bounce \
-    /var/spool/postfix/private 2>/dev/null || true
-chown root:root /var/spool/postfix/pid 2>/dev/null || true
-
-chmod 755 /var/spool/postfix/incoming
-chmod 755 /var/spool/postfix/active
-chmod 755 /var/spool/postfix/deferred
-chmod 755 /var/spool/postfix/hold
-chmod 755 /var/spool/postfix/bounce
-chmod 700 /var/spool/postfix/private
-
-# Ajustar virtual_uid_maps/virtual_gid_maps para o UID/GID do postfix (Maildirs são postfix:postfix)
 POSTFIX_UID=$(id -u postfix 2>/dev/null || echo "106")
 POSTFIX_GID=$(id -g postfix 2>/dev/null || echo "114")
-if [ -n "$POSTFIX_UID" ] && [ -n "$POSTFIX_GID" ]; then
-    sed -i "s/^virtual_uid_maps = .*/virtual_uid_maps = static:${POSTFIX_UID}/" /etc/postfix/main.cf 2>/dev/null || true
-    sed -i "s/^virtual_gid_maps = .*/virtual_gid_maps = static:${POSTFIX_GID}/" /etc/postfix/main.cf 2>/dev/null || true
-    echo "   virtual_uid_maps = static:${POSTFIX_UID}, virtual_gid_maps = static:${POSTFIX_GID}"
-fi
-
-# Iniciar rsyslog para capturar logs do Postfix em /var/log/mail.log (diagnóstico de entrega)
+[ -n "$POSTFIX_UID" ] && [ -n "$POSTFIX_GID" ] && sed -i "s/^virtual_uid_maps = .*/virtual_uid_maps = static:${POSTFIX_UID}/" /etc/postfix/main.cf 2>/dev/null && sed -i "s/^virtual_gid_maps = .*/virtual_gid_maps = static:${POSTFIX_GID}/" /etc/postfix/main.cf 2>/dev/null || true
 if [ -f /etc/rsyslog.d/50-mail.conf ] && command -v rsyslogd >/dev/null 2>&1; then
     touch /var/log/mail.log
     chmod 644 /var/log/mail.log
     rsyslogd 2>/dev/null &
     sleep 1
-    echo "   ✓ rsyslog iniciado (mail.log em /var/log/mail.log)"
 fi
-
-# Iniciar Postfix
-echo "   Executando: postfix start"
+echo "   Iniciando Postfix (porta 25)..."
 /usr/sbin/postfix start
-
-# Aguardar sockets (public/pickup) serem criados
 sleep 3
-# Workaround Docker: postdrop/sendmail precisa acessar public/pickup (o+x em public)
 chmod o+x /var/spool/postfix/public 2>/dev/null || true
-# Verificar se o socket/fifo pickup existe
-if [ -e /var/spool/postfix/public/pickup ] 2>/dev/null; then
-    echo "   ✓ Socket public/pickup disponível"
-else
-    echo "   ⚠ public/pickup ainda não criado (pickup pode iniciar sob demanda)"
-fi
+/usr/sbin/postfix status >/dev/null 2>&1 && echo "   ✓ Postfix a escutar na porta 25"
 
-# Aguardar um pouco para o Postfix iniciar completamente
-sleep 2
-
-# Verificar se o Postfix iniciou corretamente
-echo "   Verificando status..."
-if /usr/sbin/postfix status >/dev/null 2>&1; then
-    echo "   ✓ Postfix está rodando"
-    
-    # Verificar se o smtpd está rodando (verificar processo smtpd)
-    if pgrep -x smtpd >/dev/null || pgrep -f "/usr/lib/postfix/sbin/smtpd" >/dev/null || pgrep -f "smtpd" >/dev/null; then
-        echo "   ✓ smtpd está rodando"
-    else
-        echo "   ⚠ smtpd não está rodando - tentando reload"
-        /usr/sbin/postfix reload
-        sleep 3
-        # Verificar novamente
-        if pgrep -x smtpd >/dev/null || pgrep -f "/usr/lib/postfix/sbin/smtpd" >/dev/null || pgrep -f "smtpd" >/dev/null; then
-            echo "   ✓ smtpd iniciado após reload"
-        else
-            echo "   ⚠ smtpd ainda não está rodando (pode ser normal se não houver conexões)"
-            echo "   Verificando processos do Postfix:"
-            ps aux | grep -E "(postfix|smtpd)" | grep -v grep | head -5
-        fi
-    fi
-else
-    echo "   ✗ Postfix não iniciou - tentando novamente..."
-    /usr/sbin/postfix start
-    sleep 3
-    /usr/sbin/postfix status 2>&1 | head -3
+# --- Serviços auxiliares (ClamAV, Amavis, Dovecot) depois do Postfix ---
+echo "Iniciando serviços auxiliares (ClamAV, Amavis, Dovecot)..."
+freshclam >/dev/null 2>&1 &
+for d in /var/run/clamav /run/clamav; do
+    mkdir -p "$d" 2>/dev/null
+    chown clamav:clamav "$d" 2>/dev/null || chown clamav:root "$d" 2>/dev/null || true
+done
+CLAM_DB_DIR="${CLAM_DB_DIR:-/var/lib/clamav}"
+if [ -f /etc/clamav/clamd.conf ] && [ ! -e "$CLAM_DB_DIR/main.cvd" ] && [ ! -e "$CLAM_DB_DIR/daily.cvd" ] && [ ! -e "$CLAM_DB_DIR/daily.cld" ]; then
+    echo "   Aguardando base ClamAV (máx. 15 s)..."
+    for i in $(seq 1 15); do
+        [ -e "$CLAM_DB_DIR/main.cvd" ] || [ -e "$CLAM_DB_DIR/daily.cvd" ] || [ -e "$CLAM_DB_DIR/daily.cld" ] && break
+        sleep 1
+    done
 fi
+if [ -f /etc/clamav/clamd.conf ]; then
+    clamd 2>/tmp/clamd_start.log &
+    sleep 2
+fi
+sa-update >/dev/null 2>&1 &
+CLAMD_SOCKET=""
+for i in $(seq 1 10); do
+    for s in /var/run/clamav/clamd.ctl /run/clamav/clamd.ctl /var/run/clamav/clamd.sock; do
+        [ -S "$s" ] 2>/dev/null && CLAMD_SOCKET="$s" && break 2
+    done
+    sleep 1
+done
+getent group clamav >/dev/null 2>&1 && getent passwd amavis >/dev/null 2>&1 && usermod -aG clamav amavis 2>/dev/null || true
+AMAVISD_BIN=""
+for c in /usr/sbin/amavisd /usr/sbin/amavisd-new amavisd amavisd-new; do
+    [ -x "$c" ] 2>/dev/null || command -v "$c" >/dev/null 2>&1 && AMAVISD_BIN="$c" && break
+done
+if [ -n "$AMAVISD_BIN" ] && [ -n "$CLAMD_SOCKET" ] && [ -f /etc/amavis/conf.d/50-user ]; then
+    $AMAVISD_BIN start >/dev/null 2>&1 || true
+fi
+[ -f /etc/dovecot/dovecot.conf ] && dovecot >/dev/null 2>&1 &
 
 echo ""
 echo "Postfix iniciado. Mantendo container rodando..."
