@@ -21,6 +21,7 @@ virtual_alias_maps = hash:/etc/postfix/ldap/virtual-alias-maps.hash
 virtual_mailbox_base = /var/mail/vhosts
 virtual_minimum_uid = 100
 # UID/GID do postfix para entrega virtual (Maildirs são postfix:postfix)
+# Se strict_mailbox_ownership=yes (padrão), o Maildir deve ser dono = esse UID
 virtual_uid_maps = static:106
 virtual_gid_maps = static:114
 

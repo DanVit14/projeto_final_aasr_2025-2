@@ -283,8 +283,19 @@ fi
 echo "   Executando: postfix start"
 /usr/sbin/postfix start
 
+# Aguardar sockets (public/pickup) serem criados
+sleep 3
+# Workaround Docker: postdrop/sendmail precisa acessar public/pickup (o+x em public)
+chmod o+x /var/spool/postfix/public 2>/dev/null || true
+# Verificar se o socket/fifo pickup existe
+if [ -e /var/spool/postfix/public/pickup ] 2>/dev/null; then
+    echo "   ✓ Socket public/pickup disponível"
+else
+    echo "   ⚠ public/pickup ainda não criado (pickup pode iniciar sob demanda)"
+fi
+
 # Aguardar um pouco para o Postfix iniciar completamente
-sleep 5
+sleep 2
 
 # Verificar se o Postfix iniciou corretamente
 echo "   Verificando status..."
