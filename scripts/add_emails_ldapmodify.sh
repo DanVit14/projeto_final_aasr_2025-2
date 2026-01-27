@@ -22,32 +22,59 @@ fi
 
 DOMAIN="empresa.local"
 DOMAIN_DN="dc=empresa,dc=local"
+BIND_DN="cn=Administrator,cn=Users,${DOMAIN_DN}"
+
+# Obter DNs reais dos usuários (no Samba AD o CN pode ser "Admin User" etc.)
+get_dn() {
+    local user="$1"
+    docker-compose exec -T smtp ldapsearch -x -H ldaps://ldap:636 \
+        -b "cn=Users,${DOMAIN_DN}" \
+        -D "$BIND_DN" -w "Admin@123" -LLL \
+        "(&(objectClass=person)(sAMAccountName=${user}))" dn 2>/dev/null | grep "^dn:" | head -1 | sed 's/^dn: //'
+}
 
 # Criar arquivo LDIF temporário no host
 TMP_LDIF=$(mktemp /tmp/add_emails_ldap_XXXXXX.ldif)
 
-cat > "$TMP_LDIF" <<EOF
-dn: CN=admin,CN=Users,${DOMAIN_DN}
+# Mapeamento usuário -> email
+declare -A USER_EMAIL
+USER_EMAIL[admin]="admin@${DOMAIN}"
+USER_EMAIL[user1]="user1@${DOMAIN}"
+USER_EMAIL[user2]="user2@${DOMAIN}"
+USER_EMAIL[Administrator]="administrator@${DOMAIN}"
+
+echo "   Obtendo DNs dos usuários no LDAP..."
+> "$TMP_LDIF"
+for user in admin user1 user2 Administrator; do
+    dn=$(get_dn "$user")
+    email="${USER_EMAIL[$user]}"
+    if [ -z "$email" ]; then
+        email="${user}@${DOMAIN}"
+    fi
+    if [ -n "$dn" ]; then
+        cat >> "$TMP_LDIF" <<EOL
+dn: ${dn}
 changetype: modify
 add: mail
-mail: admin@${DOMAIN}
+mail: ${email}
 -
-dn: CN=user1,CN=Users,${DOMAIN_DN}
+
+EOL
+        echo "   ✓ $user -> $dn"
+    else
+        # Fallback: CN igual ao nome do usuário (alguns ambientes)
+        dn="CN=${user},CN=Users,${DOMAIN_DN}"
+        cat >> "$TMP_LDIF" <<EOL
+dn: ${dn}
 changetype: modify
 add: mail
-mail: user1@${DOMAIN}
+mail: ${email}
 -
-dn: CN=user2,CN=Users,${DOMAIN_DN}
-changetype: modify
-add: mail
-mail: user2@${DOMAIN}
--
-dn: CN=Administrator,CN=Users,${DOMAIN_DN}
-changetype: modify
-add: mail
-mail: administrator@${DOMAIN}
--
-EOF
+
+EOL
+        echo "   ⚠ $user: usando DN fallback $dn"
+    fi
+done
 
 echo "1. Copiando arquivo LDIF para o container SMTP..."
 docker cp "$TMP_LDIF" smtp_antivirus:/tmp/add_emails.ldif
