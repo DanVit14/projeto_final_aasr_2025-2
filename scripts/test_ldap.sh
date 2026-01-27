@@ -1,7 +1,8 @@
 #!/bin/bash
 # Script de testes do LDAP/AD
 
-set -e
+# Não usar set -e para não parar nos testes que falharem
+set +e
 
 echo "=========================================="
 echo "Testes do LDAP/AD - Container 1"
