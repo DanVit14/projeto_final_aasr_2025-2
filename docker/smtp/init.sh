@@ -162,42 +162,10 @@ sleep 3
 chmod o+x /var/spool/postfix/public 2>/dev/null || true
 /usr/sbin/postfix status >/dev/null 2>&1 && echo "   ✓ Postfix a escutar na porta 25"
 
-# --- Serviços auxiliares (ClamAV, Amavis, Dovecot) depois do Postfix ---
-echo "Iniciando serviços auxiliares (ClamAV, Amavis, Dovecot)..."
-freshclam >/dev/null 2>&1 &
-for d in /var/run/clamav /run/clamav; do
-    mkdir -p "$d" 2>/dev/null
-    chown clamav:clamav "$d" 2>/dev/null || chown clamav:root "$d" 2>/dev/null || true
-done
-CLAM_DB_DIR="${CLAM_DB_DIR:-/var/lib/clamav}"
-if [ -f /etc/clamav/clamd.conf ] && [ ! -e "$CLAM_DB_DIR/main.cvd" ] && [ ! -e "$CLAM_DB_DIR/daily.cvd" ] && [ ! -e "$CLAM_DB_DIR/daily.cld" ]; then
-    echo "   Aguardando base ClamAV (máx. 15 s)..."
-    for i in $(seq 1 15); do
-        [ -e "$CLAM_DB_DIR/main.cvd" ] || [ -e "$CLAM_DB_DIR/daily.cvd" ] || [ -e "$CLAM_DB_DIR/daily.cld" ] && break
-        sleep 1
-    done
-fi
-if [ -f /etc/clamav/clamd.conf ]; then
-    clamd 2>/tmp/clamd_start.log &
-    sleep 2
-fi
-sa-update >/dev/null 2>&1 &
-CLAMD_SOCKET=""
-for i in $(seq 1 10); do
-    for s in /var/run/clamav/clamd.ctl /run/clamav/clamd.ctl /var/run/clamav/clamd.sock; do
-        [ -S "$s" ] 2>/dev/null && CLAMD_SOCKET="$s" && break 2
-    done
-    sleep 1
-done
-getent group clamav >/dev/null 2>&1 && getent passwd amavis >/dev/null 2>&1 && usermod -aG clamav amavis 2>/dev/null || true
-AMAVISD_BIN=""
-for c in /usr/sbin/amavisd /usr/sbin/amavisd-new amavisd amavisd-new; do
-    [ -x "$c" ] 2>/dev/null || command -v "$c" >/dev/null 2>&1 && AMAVISD_BIN="$c" && break
-done
-if [ -n "$AMAVISD_BIN" ] && [ -n "$CLAMD_SOCKET" ] && [ -f /etc/amavis/conf.d/50-user ]; then
-    $AMAVISD_BIN start >/dev/null 2>&1 || true
-fi
-[ -f /etc/dovecot/dovecot.conf ] && dovecot >/dev/null 2>&1 &
+# --- Serviços auxiliares (Dovecot) depois do Postfix ---
+# NOTA: ClamAV e Amavis desativados (content_filter comentado no main.cf)
+echo "Iniciando Dovecot..."
+[ -f /etc/dovecot/dovecot.conf ] && dovecot >/dev/null 2>&1 && echo "   ✓ Dovecot iniciado" || true
 
 echo ""
 echo "Postfix iniciado. Mantendo container rodando..."
