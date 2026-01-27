@@ -134,6 +134,11 @@ chown postfix:postfix /var/spool/postfix/public /var/spool/postfix/maildrop
 chmod 755 /var/spool/postfix/public
 chmod 1777 /var/spool/postfix/maildrop
 
+# Criar arquivo de socket do pickup (se necessário)
+touch /var/spool/postfix/public/pickup 2>/dev/null || true
+chown postfix:postfix /var/spool/postfix/public/pickup 2>/dev/null || true
+chmod 644 /var/spool/postfix/public/pickup 2>/dev/null || true
+
 # Iniciar Postfix
 echo "   Executando: postfix start"
 /usr/sbin/postfix start

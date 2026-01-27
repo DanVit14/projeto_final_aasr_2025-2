@@ -1,5 +1,8 @@
 # Configuração master do Postfix
 
+# Serviço pickup (necessário para postdrop/sendmail funcionar)
+pickup    unix  n       -       n       60      1       pickup
+
 smtp      inet  n       -       n       -       -       smtpd
 submission inet n       -       y       -       -       smtpd
   -o syslog_name=postfix/submission
