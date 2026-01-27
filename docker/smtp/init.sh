@@ -191,9 +191,25 @@ if getent group clamav >/dev/null 2>&1 && getent passwd amavis >/dev/null 2>&1; 
 fi
 
 # Amavis (ClamAV + SpamAssassin) — só sobe depois do clamd estar ouvindo
+# No Debian 12 o pacote amavisd-new instala o binário /usr/sbin/amavisd (não amavisd-new)
+AMAVISD_BIN=""
+for candidate in /usr/sbin/amavisd /usr/sbin/amavisd-new amavisd amavisd-new; do
+    if [ -x "$candidate" ] 2>/dev/null || command -v "$candidate" >/dev/null 2>&1; then
+        AMAVISD_BIN="$candidate"
+        break
+    fi
+done
 if [ -f /etc/amavis/conf.d/50-user ]; then
     if [ -n "$CLAMD_SOCKET" ]; then
-        amavisd-new start >/dev/null 2>&1 && echo "   ✓ Amavis iniciado (10024)" || echo "   ⚠ Amavis falhou ao iniciar (docker-compose exec smtp amavisd-new debug 2>&1 | head -50)"
+        if [ -n "$AMAVISD_BIN" ]; then
+            if $AMAVISD_BIN start >/dev/null 2>&1; then
+                echo "   ✓ Amavis iniciado (10024)"
+            else
+                echo "   ⚠ Amavis falhou ao iniciar (docker-compose exec smtp $AMAVISD_BIN debug 2>&1 | head -50)"
+            fi
+        else
+            echo "   ⚠ Amavis: nenhum binário encontrado (/usr/sbin/amavisd ou amavisd-new)"
+        fi
     else
         echo "   ⚠ Amavis não iniciado: clamd socket não apareceu em 30s (clamd pode não ter subido)"
     fi

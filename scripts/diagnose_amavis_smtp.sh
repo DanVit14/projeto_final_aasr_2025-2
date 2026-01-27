@@ -40,8 +40,8 @@ cd "${0%/*}/.." 2>/dev/null || true
   docker-compose exec -T "$CONTAINER" ps aux 2>/dev/null | grep -E 'clam|amavis' | grep -v grep || echo "(nenhum processo clam/amavis encontrado)"
   echo ""
 
-  echo "=== 6. Amavis: saída de amavisd-new debug (primeiras 80 linhas) ==="
-  docker-compose exec -T "$CONTAINER" timeout 10 amavisd-new debug 2>&1 | head -80 || docker-compose exec -T "$CONTAINER" amavisd-new debug 2>&1 | head -80
+  echo "=== 6. Amavis: saída de amavisd debug (primeiras 80 linhas) ==="
+  docker-compose exec -T "$CONTAINER" sh -c 'timeout 10 amavisd debug 2>/dev/null || timeout 10 amavisd-new debug 2>/dev/null || amavisd debug 2>/dev/null || amavisd-new debug' 2>&1 | head -80
   echo ""
 
   echo "=== 7. Fila do Postfix (postqueue -p) ==="
