@@ -66,6 +66,10 @@ samba-tool group add "Guests" 2>/dev/null || true
 samba-tool group addmembers "Admins" admin 2>/dev/null || true
 samba-tool group addmembers "Users" user1,user2 2>/dev/null || true
 
+# Adicionar atributos de e-mail aos usuários (necessário para SMTP)
+echo "Adicionando atributos de e-mail aos usuários..."
+/usr/local/bin/add_email_attributes.sh
+
 # Configurar compartilhamentos
 echo "Configurando compartilhamentos..."
 

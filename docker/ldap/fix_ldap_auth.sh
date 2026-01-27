@@ -18,13 +18,15 @@ fi
 # Isso permite simple bind sem criptografia obrigatória
 echo "   Aplicando configuração de segurança..."
 
-# Verificar se já está configurado
-CURRENT_HEURISTICS=$(ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=Default Domain Policy,CN=System,${DOMAIN_DN}" dSHeuristics 2>/dev/null | grep "^dSHeuristics:" | awk '{print $2}')
+# Método 1: Modificar dSHeuristics na política de domínio
+# O valor 0000002 permite simple bind sem criptografia
+POLICY_DN="CN=Default Domain Policy,CN=System,${DOMAIN_DN}"
 
-if [ "$CURRENT_HEURISTICS" != "0000002" ]; then
-    # Modificar a política de domínio para permitir simple bind
+# Verificar se a política existe
+if ldbsearch -H /var/lib/samba/private/sam.ldb -b "$POLICY_DN" dn 2>/dev/null | grep -q "^dn:"; then
+    # Modificar a política
     ldbmodify -H /var/lib/samba/private/sam.ldb <<EOF 2>/dev/null
-dn: CN=Default Domain Policy,CN=System,${DOMAIN_DN}
+dn: $POLICY_DN
 changetype: modify
 replace: dSHeuristics
 dSHeuristics: 0000002
@@ -32,12 +34,38 @@ dSHeuristics: 0000002
 EOF
     
     if [ $? -eq 0 ]; then
-        echo "   ✓ Política de segurança modificada com sucesso"
+        echo "   ✓ Política de segurança modificada (dSHeuristics=0000002)"
     else
-        echo "   ⚠ Não foi possível modificar a política (pode já estar configurado)"
+        # Tentar adicionar se não existir
+        ldbmodify -H /var/lib/samba/private/sam.ldb <<EOF 2>/dev/null
+dn: $POLICY_DN
+changetype: modify
+add: dSHeuristics
+dSHeuristics: 0000002
+-
+EOF
+        if [ $? -eq 0 ]; then
+            echo "   ✓ Política de segurança adicionada (dSHeuristics=0000002)"
+        else
+            echo "   ⚠ Não foi possível modificar a política diretamente"
+        fi
     fi
 else
-    echo "   ✓ Política já está configurada corretamente"
+    echo "   ⚠ Política de domínio não encontrada, tentando método alternativo..."
+fi
+
+# Método 2: Modificar configuração do LDAP server diretamente
+# Adicionar configuração que permite simple bind
+if [ -f "/var/lib/samba/private/sam.ldb" ]; then
+    # Tentar modificar configuração do LDAP server
+    ldbmodify -H /var/lib/samba/private/sam.ldb <<EOF 2>/dev/null
+dn: @MODULES
+changetype: modify
+add: @LIST
+@LIST: simple_bind
+-
+EOF
+    echo "   Tentativa de configuração do módulo LDAP aplicada"
 fi
 
 # Adicionar configuração no smb.conf se existir

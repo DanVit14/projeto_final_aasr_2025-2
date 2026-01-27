@@ -1,8 +1,84 @@
-# Configuração básica do Postfix
-# Será expandida durante a implementação
+# Configuração do Postfix com LDAP/AD e Antivírus
 
+# Identificação do servidor
 myhostname = mail.empresa.local
 mydomain = empresa.local
 myorigin = $mydomain
+
+# Interfaces de rede
 inet_interfaces = all
-mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+inet_protocols = ipv4
+
+# Destinos locais
+mydestination = $myhostname, localhost.$mydomain, localhost
+
+# Domínio virtual (Maildir)
+virtual_mailbox_domains = ldap:/etc/postfix/ldap/ldap-virtual-mailbox-domains.cf
+virtual_mailbox_maps = ldap:/etc/postfix/ldap/ldap-virtual-mailbox-maps.cf
+virtual_alias_maps = ldap:/etc/postfix/ldap/ldap-virtual-alias-maps.cf
+virtual_mailbox_base = /var/mail/vhosts
+virtual_minimum_uid = 100
+virtual_uid_maps = static:5000
+virtual_gid_maps = static:5000
+
+# Maildir
+virtual_mailbox_limit = 104857600
+virtual_mailbox_extended = yes
+
+# Autenticação SASL para envio
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = private/auth
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_security_options = noanonymous
+smtpd_sasl_local_domain = $mydomain
+broken_sasl_auth_clients = yes
+
+# Autenticação LDAP para SASL
+smtpd_sender_login_maps = ldap:/etc/postfix/ldap/ldap-sender-login-maps.cf
+
+# Restrições de recebimento
+smtpd_recipient_restrictions = 
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_non_fqdn_recipient,
+    reject_unknown_recipient_domain,
+    permit
+
+smtpd_helo_restrictions = 
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    warn_if_reject reject_non_fqdn_helo_hostname,
+    reject_invalid_helo_hostname,
+    permit
+
+smtpd_sender_restrictions = 
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_non_fqdn_sender,
+    reject_unknown_sender_domain,
+    permit
+
+# Integração com Amavis (ClamAV + SpamAssassin)
+content_filter = amavis:[127.0.0.1]:10024
+
+# Configurações de transporte
+relayhost =
+mynetworks = 127.0.0.0/8, 10.0.1.0/24
+
+# Logging
+mailbox_command = /usr/lib/dovecot/deliver
+mailbox_size_limit = 0
+message_size_limit = 10485760
+
+# Segurança
+smtpd_tls_cert_file = /etc/ssl/certs/ssl-cert-snakeoil.pem
+smtpd_tls_key_file = /etc/ssl/private/ssl-cert-snakeoil.key
+smtpd_use_tls = yes
+smtpd_tls_auth_only = yes
+smtpd_tls_security_level = may
+
+# Submission (porta 587)
+smtpd_client_restrictions = permit_mynetworks, permit_sasl_authenticated, reject
+
+# Headers
+mime_header_checks = regexp:/etc/postfix/mime_header_checks

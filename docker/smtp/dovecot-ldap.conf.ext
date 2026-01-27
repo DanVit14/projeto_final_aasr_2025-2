@@ -1,0 +1,25 @@
+# Configuração LDAP para autenticação Dovecot
+passdb {
+  driver = ldap
+  args = /etc/dovecot/dovecot-ldap.conf.ext
+}
+
+userdb {
+  driver = ldap
+  args = /etc/dovecot/dovecot-ldap.conf.ext
+}
+
+# Configuração LDAP para autenticação Dovecot
+hosts = ldap:636
+ldap_version = 3
+auth_bind = yes
+base = dc=empresa,dc=local
+user_attrs = mail=mail,mail=user,uidNumber=uid,gidNumber=gid
+user_filter = (&(objectClass=person)(mail=%u))
+pass_attrs = mail=user,userPassword=password
+pass_filter = (&(objectClass=person)(mail=%u))
+tls = yes
+tls_ca_cert_file = /etc/ssl/certs/ca-certificates.crt
+tls_require_cert = no
+dn = cn=Administrator,cn=Users,dc=empresa,dc=local
+dnpass = Admin@123

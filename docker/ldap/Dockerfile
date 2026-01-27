@@ -27,8 +27,9 @@ COPY samba.conf /etc/samba/smb.conf.template
 COPY init.sh /usr/local/bin/init.sh
 COPY provision.sh /usr/local/bin/provision.sh
 COPY fix_ldap_auth.sh /usr/local/bin/fix_ldap_auth.sh
+COPY add_email_attributes.sh /usr/local/bin/add_email_attributes.sh
 
-RUN chmod +x /usr/local/bin/init.sh /usr/local/bin/provision.sh /usr/local/bin/fix_ldap_auth.sh
+RUN chmod +x /usr/local/bin/init.sh /usr/local/bin/provision.sh /usr/local/bin/fix_ldap_auth.sh /usr/local/bin/add_email_attributes.sh
 
 EXPOSE 389 636 88 445 135 53
 
