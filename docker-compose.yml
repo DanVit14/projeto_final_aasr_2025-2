@@ -64,8 +64,8 @@ services:
       - smtp_data:/var/mail
       - smtp_vhosts:/var/mail/vhosts
       - clamav_data:/var/lib/clamav
-      - ./docker/smtp/main.cf:/etc/postfix/main.cf:ro
-      - ./docker/smtp/master.cf:/etc/postfix/master.cf:ro
+      # Não montar main.cf e master.cf como volumes para evitar problemas de propriedade
+      # Eles são copiados no Dockerfile
     environment:
       - DOMAIN=empresa.local
       - LDAP_SERVER=ldap
