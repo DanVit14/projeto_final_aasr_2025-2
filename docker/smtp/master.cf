@@ -1,6 +1,6 @@
 # Configuração master do Postfix
 
-smtp      inet  n       -       y       -       -       smtpd
+smtp      inet  n       -       n       -       -       smtpd
 submission inet n       -       y       -       -       smtpd
   -o syslog_name=postfix/submission
   -o smtpd_tls_security_level=encrypt
