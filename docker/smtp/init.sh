@@ -14,13 +14,30 @@ LDAP_BASE="${LDAP_BASE:-dc=empresa,dc=local}"
 
 # Aguardar LDAP estar pronto
 echo "Aguardando LDAP estar disponível..."
-for i in {1..30}; do
+LDAP_READY=0
+for i in {1..15}; do
+    # Tentar LDAPS primeiro
     if ldapsearch -x -H ldaps://${LDAP_SERVER}:636 -b "${LDAP_BASE}" -D "cn=Administrator,cn=Users,${LDAP_BASE}" -w "Admin@123" >/dev/null 2>&1; then
-        echo "   ✓ LDAP está disponível"
+        echo "   ✓ LDAP está disponível (LDAPS)"
+        LDAP_READY=1
         break
+    fi
+    # Tentar LDAP normal como fallback
+    if ldapsearch -x -H ldap://${LDAP_SERVER}:389 -b "${LDAP_BASE}" -D "cn=Administrator,cn=Users,${LDAP_BASE}" -w "Admin@123" >/dev/null 2>&1; then
+        echo "   ✓ LDAP está disponível (LDAP normal)"
+        LDAP_READY=1
+        break
+    fi
+    if [ $i -eq 1 ]; then
+        echo "   Aguardando conexão LDAP..."
     fi
     sleep 2
 done
+
+if [ $LDAP_READY -eq 0 ]; then
+    echo "   ⚠ LDAP não está acessível ainda (continuando mesmo assim)"
+    echo "   Os serviços podem funcionar quando o LDAP estiver pronto"
+fi
 
 # Criar diretórios necessários
 mkdir -p /var/mail/vhosts/${DOMAIN}
@@ -63,7 +80,7 @@ if [ -f /etc/dovecot/dovecot.conf ]; then
 fi
 
 # Aguardar um pouco para serviços iniciarem
-sleep 3
+sleep 5
 
 # Verificar configuração do Postfix
 echo "Verificando configuração do Postfix..."
