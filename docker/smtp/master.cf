@@ -3,7 +3,10 @@
 # Serviço pickup (necessário para postdrop/sendmail funcionar)
 pickup    unix  n       -       n       60      1       pickup
 
-# Serviço cleanup (recebe de pickup, injeta na fila - obrigatório)
+# Serviço rewrite (socket private/rewrite — o cleanup depende dele; daemon trivial-rewrite)
+rewrite    unix  -       -       n       -       -       trivial-rewrite
+
+# Serviço cleanup (recebe de pickup, injeta na fila — usa trivial-rewrite para endereços)
 cleanup   unix  n       -       n       -       0       cleanup
 
 # Serviço qmgr (gerenciador de fila - necessário para processar e-mails)
