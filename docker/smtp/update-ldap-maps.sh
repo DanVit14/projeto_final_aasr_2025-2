@@ -27,6 +27,7 @@ query_ldap() {
     local filter="$1"
     local attributes="$2"
     local result=""
+    local exit_code=0
     
     # Tentar LDAPS primeiro
     result=$(ldapsearch -x -H ldaps://${LDAP_SERVER}:${LDAP_PORT} \
@@ -37,29 +38,34 @@ query_ldap() {
         -o nettimeout=5 \
         "${filter}" \
         ${attributes} 2>&1)
+    exit_code=$?
     
     # Verificar se funcionou (procurar por linhas que começam com atributo ou "dn:")
-    if [ $? -ne 0 ] || [ -z "$result" ] || ! echo "$result" | grep -qE "^(dn|mail|sAMAccountName):"; then
-        # Tentar StartTLS
-        result=$(ldapsearch -x -H ldap://${LDAP_SERVER}:389 \
-            -b "${LDAP_BASE}" \
-            -D "${LDAP_BIND_DN}" \
-            -w "${LDAP_BIND_PW}" \
-            -ZZ \
-            -LLL \
-            -o nettimeout=5 \
-            "${filter}" \
-            ${attributes} 2>&1)
+    if [ $exit_code -eq 0 ] && [ -n "$result" ] && echo "$result" | grep -qE "^(dn|mail|sAMAccountName):"; then
+        echo "$result"
+        return 0
     fi
     
-    # Se ainda falhar, retornar vazio mas não dar erro fatal
-    if [ $? -ne 0 ] || ! echo "$result" | grep -qE "^(dn|mail|sAMAccountName):"; then
-        echo "" >&2
-        return 1
+    # Tentar StartTLS se LDAPS falhou
+    result=$(ldapsearch -x -H ldap://${LDAP_SERVER}:389 \
+        -b "${LDAP_BASE}" \
+        -D "${LDAP_BIND_DN}" \
+        -w "${LDAP_BIND_PW}" \
+        -ZZ \
+        -LLL \
+        -o nettimeout=5 \
+        "${filter}" \
+        ${attributes} 2>&1)
+    exit_code=$?
+    
+    # Verificar se StartTLS funcionou
+    if [ $exit_code -eq 0 ] && [ -n "$result" ] && echo "$result" | grep -qE "^(dn|mail|sAMAccountName):"; then
+        echo "$result"
+        return 0
     fi
     
-    echo "$result"
-    return 0
+    # Se ambos falharam, retornar vazio
+    return 1
 }
 
 echo "Atualizando arquivos hash do LDAP..."
@@ -69,7 +75,8 @@ echo ""
 echo "1. Atualizando virtual-mailbox-domains.hash..."
 rm -f "${HASH_DIR}/virtual-mailbox-domains.hash" "${HASH_DIR}/virtual-mailbox-domains.hash.db" 2>/dev/null
 ldap_result=$(query_ldap "(mail=*)" "mail")
-if [ $? -eq 0 ] && [ -n "$ldap_result" ]; then
+query_exit=$?
+if [ $query_exit -eq 0 ] && [ -n "$ldap_result" ] && echo "$ldap_result" | grep -q "^mail:"; then
     # Usar process substitution para evitar problema de subshell
     {
         echo "$ldap_result" | grep "^mail:" | cut -d: -f2 | tr -d " " | cut -d@ -f2 | sort -u | while read domain; do
@@ -100,7 +107,8 @@ fi
 echo "2. Atualizando virtual-mailbox-maps.hash..."
 rm -f "${HASH_DIR}/virtual-mailbox-maps.hash" "${HASH_DIR}/virtual-mailbox-maps.hash.db" 2>/dev/null
 ldap_result=$(query_ldap "(&(objectClass=person)(mail=*))" "mail sAMAccountName")
-if [ $? -eq 0 ] && [ -n "$ldap_result" ]; then
+query_exit=$?
+if [ $query_exit -eq 0 ] && [ -n "$ldap_result" ] && echo "$ldap_result" | grep -qE "^(mail|sAMAccountName):"; then
     # Processar resultado do LDAP usando awk
     echo "$ldap_result" | awk '
     BEGIN { email=""; username="" }
@@ -144,7 +152,8 @@ fi
 echo "3. Atualizando virtual-alias-maps.hash..."
 rm -f "${HASH_DIR}/virtual-alias-maps.hash" "${HASH_DIR}/virtual-alias-maps.hash.db" 2>/dev/null
 ldap_result=$(query_ldap "(&(objectClass=person)(mail=*))" "mail")
-if [ $? -eq 0 ] && [ -n "$ldap_result" ]; then
+query_exit=$?
+if [ $query_exit -eq 0 ] && [ -n "$ldap_result" ] && echo "$ldap_result" | grep -q "^mail:"; then
     # Usar process substitution para evitar problema de subshell
     {
         echo "$ldap_result" | grep "^mail:" | cut -d: -f2 | tr -d " " | while read email; do
@@ -175,7 +184,8 @@ fi
 echo "4. Atualizando sender-login-maps.hash..."
 rm -f "${HASH_DIR}/sender-login-maps.hash" "${HASH_DIR}/sender-login-maps.hash.db" 2>/dev/null
 ldap_result=$(query_ldap "(&(objectClass=person)(mail=*))" "mail sAMAccountName")
-if [ $? -eq 0 ] && [ -n "$ldap_result" ]; then
+query_exit=$?
+if [ $query_exit -eq 0 ] && [ -n "$ldap_result" ] && echo "$ldap_result" | grep -qE "^(mail|sAMAccountName):"; then
     echo "$ldap_result" | awk '
     BEGIN { email=""; username="" }
     /^mail: / { email=$2 }

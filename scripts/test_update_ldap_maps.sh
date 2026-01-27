@@ -8,6 +8,18 @@ echo "Testando update-ldap-maps.sh"
 echo "=========================================="
 echo ""
 
+# 0. Verificar se o container está rodando
+echo "0. Verificando se o container SMTP está rodando:"
+if ! docker-compose ps smtp | grep -q "Up"; then
+    echo "   ✗ Container SMTP não está rodando!"
+    echo "   Execute: docker-compose up -d smtp"
+    echo "   E aguarde alguns segundos antes de executar este teste novamente"
+    exit 1
+else
+    echo "   ✓ Container SMTP está rodando"
+fi
+echo ""
+
 # 1. Verificar se o script existe
 echo "1. Verificando se o script existe:"
 docker-compose exec smtp test -f /usr/local/bin/update-ldap-maps.sh && echo "   ✓ Script existe" || echo "   ✗ Script não existe"
