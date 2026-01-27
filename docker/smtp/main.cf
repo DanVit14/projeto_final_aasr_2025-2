@@ -23,6 +23,7 @@ virtual_gid_maps = static:5000
 
 # Maildir
 virtual_mailbox_limit = 104857600
+virtual_transport = virtual
 
 # Autenticação SASL para envio
 smtpd_sasl_type = dovecot

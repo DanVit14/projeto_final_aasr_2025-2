@@ -3,6 +3,9 @@
 # Serviço pickup (necessário para postdrop/sendmail funcionar)
 pickup    unix  n       -       n       60      1       pickup
 
+# Serviço virtual (entrega para domínios virtuais/Maildir)
+virtual   unix  -       n       n       -       -       virtual
+
 smtp      inet  n       -       n       -       -       smtpd
 submission inet n       -       y       -       -       smtpd
   -o syslog_name=postfix/submission
