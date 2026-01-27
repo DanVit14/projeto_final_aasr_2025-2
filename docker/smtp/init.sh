@@ -63,15 +63,27 @@ mkdir -p /var/spool/postfix/pid
 
 # Configurar permissões
 chown -R postfix:postfix /var/mail/vhosts
-chown -R postfix:postfix /var/spool/postfix
 chown -R postfix:postfix /var/spool/postfix/var/lib/sasl2
 chown -R amavis:amavis /var/lib/amavis 2>/dev/null || true
 chown -R dovecot:dovecot /var/run/dovecot 2>/dev/null || true
 
-# Permissões específicas para postdrop
+# Permissões específicas para Postfix queue
+# Diretório principal deve ser root:root
+chown root:root /var/spool/postfix
+chmod 755 /var/spool/postfix
+
+# public e maildrop devem ser root:postdrop para postdrop funcionar
+chown root:postdrop /var/spool/postfix/public /var/spool/postfix/maildrop
 chmod 755 /var/spool/postfix/public
-chmod 755 /var/spool/postfix/maildrop
 chmod 1777 /var/spool/postfix/maildrop  # Sticky bit para postdrop
+
+# Outros diretórios de queue devem ser root:root
+chown root:root /var/spool/postfix/incoming \
+    /var/spool/postfix/active \
+    /var/spool/postfix/deferred \
+    /var/spool/postfix/hold \
+    /var/spool/postfix/bounce \
+    /var/spool/postfix/pid 2>/dev/null || true
 
 # Garantir que os arquivos de configuração do Postfix sejam do root
 chown root:root /etc/postfix/main.cf /etc/postfix/master.cf 2>/dev/null || true
@@ -141,16 +153,34 @@ mkdir -p /var/spool/postfix/public \
     /var/spool/postfix/private \
     /var/spool/postfix/var/lib/sasl2
 
-# Configurar propriedade e permissões
-chown -R postfix:postfix /var/spool/postfix
+# Configurar propriedade e permissões corretas
+# Diretório principal deve ser root:root
+chown root:root /var/spool/postfix
+chmod 755 /var/spool/postfix
+
+# public e maildrop devem ser root:postdrop para postdrop funcionar
+chown root:postdrop /var/spool/postfix/public /var/spool/postfix/maildrop
 chmod 755 /var/spool/postfix/public
 chmod 1777 /var/spool/postfix/maildrop
-chmod 700 /var/spool/postfix/private
+
+# Outros diretórios de queue devem ser root:root
+chown root:root /var/spool/postfix/incoming \
+    /var/spool/postfix/active \
+    /var/spool/postfix/deferred \
+    /var/spool/postfix/hold \
+    /var/spool/postfix/bounce \
+    /var/spool/postfix/pid \
+    /var/spool/postfix/private \
+    /var/spool/postfix/etc \
+    /var/spool/postfix/lib \
+    /var/spool/postfix/usr 2>/dev/null || true
+
 chmod 755 /var/spool/postfix/incoming
 chmod 755 /var/spool/postfix/active
 chmod 755 /var/spool/postfix/deferred
 chmod 755 /var/spool/postfix/hold
 chmod 755 /var/spool/postfix/bounce
+chmod 700 /var/spool/postfix/private
 
 # Iniciar Postfix
 echo "   Executando: postfix start"

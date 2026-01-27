@@ -37,10 +37,21 @@ RUN mkdir -p /var/mail/vhosts/empresa.local \
     /var/lib/amavis/tmp
 
 # Configurar permissões
-RUN chown -R postfix:postfix /var/spool/postfix \
+# Diretórios principais devem ser root:root
+RUN chown root:root /var/spool/postfix \
     && chmod 755 /var/mail/vhosts \
+    && chmod 755 /var/spool/postfix \
+    # public e maildrop devem ser root:postdrop para postdrop funcionar
+    && chown root:postdrop /var/spool/postfix/public /var/spool/postfix/maildrop \
     && chmod 755 /var/spool/postfix/public \
-    && chmod 1777 /var/spool/postfix/maildrop
+    && chmod 1777 /var/spool/postfix/maildrop \
+    # Outros diretórios de queue devem ser root:root
+    && chown root:root /var/spool/postfix/incoming /var/spool/postfix/active \
+       /var/spool/postfix/deferred /var/spool/postfix/hold \
+       /var/spool/postfix/bounce /var/spool/postfix/pid \
+    && chmod 755 /var/spool/postfix/incoming /var/spool/postfix/active \
+       /var/spool/postfix/deferred /var/spool/postfix/hold \
+       /var/spool/postfix/bounce /var/spool/postfix/pid
 
 # Atualizar definições de vírus do ClamAV (pode falhar, mas não é crítico)
 RUN freshclam || echo "ClamAV definitions will be updated on first run"
