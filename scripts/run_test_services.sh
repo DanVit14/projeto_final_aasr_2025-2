@@ -9,11 +9,11 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 echo "A subir serviços (docker-compose up -d)..."
 docker-compose up -d
 
-echo "A aguardar SMTP em localhost:25 (máx. 180 s)..."
+echo "A aguardar SMTP em localhost:2525 (máx. 180 s)..."
 max=60
 n=0
 while [ $n -lt $max ]; do
-  if (echo "QUIT" | timeout 4 nc localhost 25 2>/dev/null) | grep -q "220"; then
+  if (echo "QUIT" | timeout 4 nc localhost 2525 2>/dev/null) | grep -q "220"; then
     echo "SMTP a responder."
     break
   fi
