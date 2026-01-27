@@ -56,6 +56,9 @@ RUN chown root:root /var/spool/postfix \
 # Atualizar definições de vírus do ClamAV (pode falhar, mas não é crítico)
 RUN freshclam || echo "ClamAV definitions will be updated on first run"
 
+# Configurar LDAP globalmente para ignorar verificação de certificado
+RUN echo "TLS_REQCERT never" >> /etc/ldap/ldap.conf
+
 # Copiar arquivos de configuração
 COPY main.cf /etc/postfix/main.cf
 COPY master.cf /etc/postfix/master.cf

@@ -12,6 +12,13 @@ DOMAIN="${DOMAIN:-empresa.local}"
 LDAP_SERVER="${LDAP_SERVER:-ldap}"
 LDAP_BASE="${LDAP_BASE:-dc=empresa,dc=local}"
 
+# Configurar LDAP globalmente para ignorar verificação de certificado
+echo "Configurando LDAP globalmente..."
+if ! grep -q "TLS_REQCERT" /etc/ldap/ldap.conf 2>/dev/null; then
+    echo "TLS_REQCERT never" >> /etc/ldap/ldap.conf
+    echo "   ✓ Configuração LDAP global adicionada"
+fi
+
 # Extrair e instalar certificado CA do LDAP
 echo "Extraindo certificado CA do LDAP..."
 LDAP_CA_CERT="/etc/ssl/certs/samba-ca.crt"
