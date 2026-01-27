@@ -23,7 +23,6 @@ virtual_gid_maps = static:5000
 
 # Maildir
 virtual_mailbox_limit = 104857600
-virtual_mailbox_extended = yes
 
 # Autenticação SASL para envio
 smtpd_sasl_type = dovecot
@@ -77,8 +76,10 @@ smtpd_use_tls = yes
 smtpd_tls_auth_only = yes
 smtpd_tls_security_level = may
 
-# Submission (porta 587)
-smtpd_client_restrictions = permit_mynetworks, permit_sasl_authenticated, reject
+# Headers (comentado - arquivo não necessário para funcionamento básico)
+# mime_header_checks = regexp:/etc/postfix/mime_header_checks
 
-# Headers
-mime_header_checks = regexp:/etc/postfix/mime_header_checks
+# Restrições para MUA (Mail User Agent) - usadas no master.cf
+mua_client_restrictions = permit_mynetworks, permit_sasl_authenticated, reject
+mua_helo_restrictions = permit_mynetworks, permit_sasl_authenticated, warn_if_reject reject_non_fqdn_helo_hostname, reject_invalid_helo_hostname, permit
+mua_sender_restrictions = permit_mynetworks, permit_sasl_authenticated, reject_non_fqdn_sender, reject_unknown_sender_domain, permit
