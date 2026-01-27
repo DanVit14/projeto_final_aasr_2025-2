@@ -169,6 +169,23 @@ else
     echo "   ⚠ Avisos na configuração do Postfix (verificar logs)"
 fi
 
+# Atualizar arquivos hash do LDAP antes de iniciar Postfix
+echo "Atualizando arquivos hash do LDAP..."
+if [ -f /usr/local/bin/update-ldap-maps.sh ]; then
+    /usr/local/bin/update-ldap-maps.sh
+    echo "   ✓ Arquivos hash atualizados"
+else
+    echo "   ⚠ Script de atualização não encontrado, criando arquivos vazios..."
+    touch /etc/postfix/ldap/virtual-mailbox-domains.hash
+    touch /etc/postfix/ldap/virtual-mailbox-maps.hash
+    touch /etc/postfix/ldap/virtual-alias-maps.hash
+    touch /etc/postfix/ldap/sender-login-maps.hash
+    postmap /etc/postfix/ldap/virtual-mailbox-domains.hash 2>/dev/null || true
+    postmap /etc/postfix/ldap/virtual-mailbox-maps.hash 2>/dev/null || true
+    postmap /etc/postfix/ldap/virtual-alias-maps.hash 2>/dev/null || true
+    postmap /etc/postfix/ldap/sender-login-maps.hash 2>/dev/null || true
+fi
+
 # Iniciar Postfix
 echo "Iniciando Postfix..."
 
