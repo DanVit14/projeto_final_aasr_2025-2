@@ -20,8 +20,9 @@ virtual_mailbox_maps = hash:/etc/postfix/ldap/virtual-mailbox-maps.hash
 virtual_alias_maps = hash:/etc/postfix/ldap/virtual-alias-maps.hash
 virtual_mailbox_base = /var/mail/vhosts
 virtual_minimum_uid = 100
-virtual_uid_maps = static:5000
-virtual_gid_maps = static:5000
+# UID/GID do postfix para entrega virtual (Maildirs são postfix:postfix)
+virtual_uid_maps = static:106
+virtual_gid_maps = static:114
 
 # Maildir
 virtual_mailbox_limit = 104857600

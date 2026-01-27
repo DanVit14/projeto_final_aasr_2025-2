@@ -261,6 +261,15 @@ chmod 755 /var/spool/postfix/hold
 chmod 755 /var/spool/postfix/bounce
 chmod 700 /var/spool/postfix/private
 
+# Ajustar virtual_uid_maps/virtual_gid_maps para o UID/GID do postfix (Maildirs são postfix:postfix)
+POSTFIX_UID=$(id -u postfix 2>/dev/null || echo "106")
+POSTFIX_GID=$(id -g postfix 2>/dev/null || echo "114")
+if [ -n "$POSTFIX_UID" ] && [ -n "$POSTFIX_GID" ]; then
+    sed -i "s/^virtual_uid_maps = .*/virtual_uid_maps = static:${POSTFIX_UID}/" /etc/postfix/main.cf 2>/dev/null || true
+    sed -i "s/^virtual_gid_maps = .*/virtual_gid_maps = static:${POSTFIX_GID}/" /etc/postfix/main.cf 2>/dev/null || true
+    echo "   virtual_uid_maps = static:${POSTFIX_UID}, virtual_gid_maps = static:${POSTFIX_GID}"
+fi
+
 # Iniciar Postfix
 echo "   Executando: postfix start"
 /usr/sbin/postfix start
