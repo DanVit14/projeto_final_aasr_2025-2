@@ -13,6 +13,17 @@ echo "Diagnóstico: Fila + Entrega Virtual"
 echo "=========================================="
 echo ""
 
+echo "0. Postfix está rodando dentro do container?"
+if docker-compose exec -T "$CONTAINER" /usr/sbin/postfix status 2>/dev/null; then
+    echo "   ✓ Postfix está ativo."
+else
+    echo "   ✗ Postfix está PARADO ou sockets inacessíveis (public/qmgr, showq)."
+    echo "   → Rode: docker-compose logs smtp --tail=80"
+    echo "   → Ou:   docker-compose exec smtp /usr/sbin/postfix status"
+    echo "   → Se o init derrubar o master após o start, revise docker/smtp/init.sh e os logs do container."
+fi
+echo ""
+
 echo "1. Fila ANTES do flush:"
 docker-compose exec -T "$CONTAINER" postqueue -p 2>&1
 echo ""
@@ -35,8 +46,12 @@ echo "5. mail.log — últimas 120 linhas (procure por status=deferred e pelo mo
 docker-compose exec -T "$CONTAINER" tail -120 /var/log/mail.log 2>/dev/null || echo "   /var/log/mail.log não existe (rsyslog pode não estar ativo)"
 echo ""
 
-echo "6. mail.log — somente linhas com defer/virtual/error/warning (últimas 150 linhas):"
-docker-compose exec -T "$CONTAINER" tail -150 /var/log/mail.log 2>/dev/null | grep -iE "status=deferred|virtual|qmgr.*user1|error|warning.*delivery|Permission denied|No such file" || echo "   Nenhuma linha de defer/erro encontrada"
+echo "6. mail.log — linhas com defer/relay/status/virtual/qmgr/erro (últimas 200 linhas):"
+docker-compose exec -T "$CONTAINER" tail -200 /var/log/mail.log 2>/dev/null | grep -iE "status=|deferred|relay=|to=<|from=<|postfix/qmgr|postfix/virtual|postfix/cleanup|error|warning|Permission denied|No such file|private/rewrite" || echo "   Nenhuma linha de entrega/defer encontrada"
+echo ""
+
+echo "6b. Serviço rewrite no master.cf (o cleanup precisa dele; deve listar 'rewrite' ou 'trivial-rewrite'):"
+docker-compose exec -T "$CONTAINER" grep -E "^rewrite |^trivial-rewrite " /etc/postfix/master.cf 2>/dev/null || echo "   Serviço rewrite NÃO encontrado no container — rebuild com master.cf que tenha a linha 'rewrite unix ... trivial-rewrite'"
 echo ""
 
 echo "7. strict_mailbox_ownership (se yes, diretório deve ser do UID em virtual_uid_maps):"
