@@ -73,12 +73,10 @@ COPY dovecot.conf /etc/dovecot/dovecot.conf
 COPY dovecot-ldap.conf.ext /etc/dovecot/dovecot-ldap.conf.ext
 COPY amavisd.conf /etc/amavis/conf.d/50-user
 COPY init.sh /usr/local/bin/init.sh
-COPY ../../scripts/test_services.sh /usr/local/bin/test_services.sh
 
 # Configurar propriedade dos arquivos do Postfix
 RUN chmod +x /usr/local/bin/init.sh \
     && chmod +x /usr/local/bin/update-ldap-maps.sh \
-    && chmod +x /usr/local/bin/test_services.sh \
     && chown root:root /etc/postfix/main.cf /etc/postfix/master.cf \
     && chown root:root /usr/local/bin/update-ldap-maps.sh \
     && chmod 644 /etc/postfix/main.cf /etc/postfix/master.cf

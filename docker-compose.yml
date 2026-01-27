@@ -64,6 +64,7 @@ services:
       - smtp_data:/var/mail
       - smtp_vhosts:/var/mail/vhosts
       - clamav_data:/var/lib/clamav
+      - ./scripts/test_services.sh:/usr/local/bin/test_services.sh:ro
       # Não montar main.cf e master.cf como volumes para evitar problemas de propriedade
       # Eles são copiados no Dockerfile
     environment:
