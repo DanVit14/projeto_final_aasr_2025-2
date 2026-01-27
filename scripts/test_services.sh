@@ -44,9 +44,9 @@ echo "3. Testando PostgreSQL (database:5432)..."
 PGPASSWORD=db_pass_123 psql -h database -U app_user -d empresa_db -c "SELECT 1;" 2>/dev/null && echo -e "${GREEN}OK${NC}" || echo -e "${RED}FALHOU${NC}"
 echo ""
 
-# Teste 4: SMTP
+# Teste 4: SMTP (timeout 5s para não travar)
 echo "4. Testando SMTP (smtp:25)..."
-echo "QUIT" | nc smtp 25 2>/dev/null | grep -q "220" && echo -e "${GREEN}OK${NC}" || echo -e "${RED}FALHOU${NC}"
+timeout 5 bash -c 'echo "QUIT" | nc -w 2 smtp 25 2>/dev/null' | grep -q "220" && echo -e "${GREEN}OK${NC}" || echo -e "${RED}FALHOU${NC}"
 echo ""
 
 # Teste 5: rsyslog
