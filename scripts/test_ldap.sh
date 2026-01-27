@@ -28,33 +28,51 @@ sleep 3
 
 # Teste 2: Informações do domínio (usando localhost)
 echo "2. Testando informações do domínio..."
-if docker-compose exec -T ldap samba-tool domain info localhost > /dev/null 2>&1; then
+DOMAIN_INFO=$(docker-compose exec -T ldap samba-tool domain info localhost 2>&1)
+if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ OK${NC}"
-    docker-compose exec -T ldap samba-tool domain info localhost | head -5
+    echo "$DOMAIN_INFO" | head -10 | sed 's/^/   /'
 else
     echo -e "${YELLOW}⚠ Verificar manualmente${NC}"
+    echo "   Tentando método alternativo..."
+    # Tentar sem especificar host
+    docker-compose exec -T ldap samba-tool domain info 2>&1 | head -5 | sed 's/^/   /' || echo "   Não foi possível obter informações do domínio"
 fi
 echo ""
 sleep 3
 
 # Teste 3: LDAP search (sem autenticação - anonymous)
 echo "3. Testando busca LDAP (anonymous)..."
-if docker-compose exec -T ldap ldapsearch -x -H ldap://localhost -b "dc=empresa,dc=local" -s base > /dev/null 2>&1; then
+LDAP_ANON=$(docker-compose exec -T ldap ldapsearch -x -H ldap://localhost -b "dc=empresa,dc=local" -s base 2>&1)
+if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ OK${NC}"
     echo "   Base DN encontrada"
+    echo "$LDAP_ANON" | grep -i "dn:" | head -3 | sed 's/^/   /' || echo "   Conexão LDAP anônima funcionando"
 else
     echo -e "${RED}✗ FALHOU${NC}"
+    echo "   Motivo: Busca LDAP anônima não permitida (normal por segurança)"
+    echo "   Detalhes: $(echo "$LDAP_ANON" | grep -i "error\|bind" | head -1 | sed 's/^/     /')"
 fi
 echo ""
 sleep 3
 
 # Teste 4: LDAP search com autenticação (LDAPS)
 echo "4. Testando autenticação LDAP (LDAPS)..."
-if docker-compose exec -T ldap ldapsearch -x -H ldaps://localhost -b "dc=empresa,dc=local" -D "cn=Administrator,cn=Users,dc=empresa,dc=local" -w "Admin@123" > /dev/null 2>&1; then
+LDAP_AUTH=$(docker-compose exec -T ldap ldapsearch -x -H ldaps://localhost -b "dc=empresa,dc=local" -D "cn=Administrator,cn=Users,dc=empresa,dc=local" -w "Admin@123" 2>&1)
+if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ OK${NC}"
-    echo "   Autenticação funcionando"
+    echo "   Autenticação LDAPS funcionando"
+    echo "$LDAP_AUTH" | grep -i "dn:" | head -3 | sed 's/^/   /' || echo "   Conexão autenticada bem-sucedida"
 else
     echo -e "${YELLOW}⚠ LDAPS pode não estar configurado (normal)${NC}"
+    echo "   Tentando LDAP normal com autenticação..."
+    LDAP_NORMAL=$(docker-compose exec -T ldap ldapsearch -x -H ldap://localhost -b "dc=empresa,dc=local" -D "cn=Administrator,cn=Users,dc=empresa,dc=local" -w "Admin@123" 2>&1)
+    if [ $? -eq 0 ]; then
+        echo "   ✓ LDAP normal com autenticação funciona"
+        echo "$LDAP_NORMAL" | grep -i "dn:" | head -3 | sed 's/^/     /' || echo "     Autenticação funcionando"
+    else
+        echo "   Detalhes: $(echo "$LDAP_AUTH" | grep -i "error\|certificate\|ssl" | head -1 | sed 's/^/     /')"
+    fi
 fi
 echo ""
 sleep 3
