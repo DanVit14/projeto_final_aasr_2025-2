@@ -229,6 +229,22 @@ else
 fi
 
 echo ""
+echo "Criando Maildirs (new, cur, tmp) para cada caixa..."
+VIRTUAL_BASE="${VIRTUAL_MAILBOX_BASE:-/var/mail/vhosts}"
+if [ -f "${HASH_DIR}/virtual-mailbox-maps.hash" ]; then
+    while read -r email path_rest; do
+        if [ -n "$path_rest" ]; then
+            mdir="${VIRTUAL_BASE}/${path_rest}"
+            for sub in new cur tmp; do
+                mkdir -p "${mdir}${sub}"
+            done
+            chown -R postfix:postfix "${mdir}" 2>/dev/null || true
+        fi
+    done < "${HASH_DIR}/virtual-mailbox-maps.hash"
+    echo "   ✓ Maildirs criados/atualizados"
+fi
+
+echo ""
 echo "Verificando arquivos criados..."
 ls -la "${HASH_DIR}"/*.hash 2>/dev/null | head -4 || echo "   ⚠ Nenhum arquivo .hash encontrado"
 ls -la "${HASH_DIR}"/*.db 2>/dev/null | head -4 || echo "   ⚠ Nenhum arquivo .db encontrado"
