@@ -10,7 +10,8 @@ userdb {
 }
 
 # Configuração LDAP para autenticação Dovecot
-hosts = ldap:636
+# Usando LDAP normal (389) com StartTLS
+hosts = ldap:389
 ldap_version = 3
 auth_bind = yes
 base = dc=empresa,dc=local

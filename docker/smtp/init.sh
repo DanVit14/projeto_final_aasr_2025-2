@@ -16,15 +16,21 @@ LDAP_BASE="${LDAP_BASE:-dc=empresa,dc=local}"
 echo "Aguardando LDAP estar disponível..."
 LDAP_READY=0
 for i in {1..15}; do
-    # Tentar LDAPS primeiro
-    if ldapsearch -x -H ldaps://${LDAP_SERVER}:636 -b "${LDAP_BASE}" -D "cn=Administrator,cn=Users,${LDAP_BASE}" -w "Admin@123" >/dev/null 2>&1; then
-        echo "   ✓ LDAP está disponível (LDAPS)"
+    # Tentar LDAP normal com StartTLS (porta 389)
+    if ldapsearch -x -H ldap://${LDAP_SERVER}:389 -b "${LDAP_BASE}" -D "cn=Administrator,cn=Users,${LDAP_BASE}" -w "Admin@123" -ZZ >/dev/null 2>&1; then
+        echo "   ✓ LDAP está disponível (LDAP com StartTLS)"
         LDAP_READY=1
         break
     fi
-    # Tentar LDAP normal como fallback
+    # Tentar LDAP normal sem StartTLS (pode falhar por autenticação forte, mas testa conectividade)
     if ldapsearch -x -H ldap://${LDAP_SERVER}:389 -b "${LDAP_BASE}" -D "cn=Administrator,cn=Users,${LDAP_BASE}" -w "Admin@123" >/dev/null 2>&1; then
-        echo "   ✓ LDAP está disponível (LDAP normal)"
+        echo "   ✓ LDAP está acessível (LDAP normal - pode precisar StartTLS)"
+        LDAP_READY=1
+        break
+    fi
+    # Tentar LDAPS como último recurso
+    if ldapsearch -x -H ldaps://${LDAP_SERVER}:636 -b "${LDAP_BASE}" -D "cn=Administrator,cn=Users,${LDAP_BASE}" -w "Admin@123" >/dev/null 2>&1; then
+        echo "   ✓ LDAP está disponível (LDAPS)"
         LDAP_READY=1
         break
     fi
