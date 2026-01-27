@@ -98,8 +98,9 @@ mkdir -p /var/spool/postfix/pid
 chown -R postfix:postfix /var/mail/vhosts
 chown -R postfix:postfix /var/spool/postfix/var/lib/sasl2
 chown -R amavis:amavis /var/lib/amavis 2>/dev/null || true
-# ClamAV (clamd) precisa de ler ficheiros em /var/lib/amavis/tmp ao varrê-los — grupo clamav com acesso
-chown amavis:clamav /var/lib/amavis/tmp 2>/dev/null && chmod 770 /var/lib/amavis/tmp 2>/dev/null || true
+# ClamAV (clamd) precisa de ler ficheiros em /var/lib/amavis/tmp ao varrê-los.
+# setgid (2770): ficheiros novos herdam grupo clamav para o clamd conseguir lê-los.
+chown amavis:clamav /var/lib/amavis/tmp 2>/dev/null && chmod 2770 /var/lib/amavis/tmp 2>/dev/null || true
 chown -R dovecot:dovecot /var/run/dovecot 2>/dev/null || true
 
 # Permissões específicas para Postfix queue
