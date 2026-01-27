@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y \
     libsasl2-modules-ldap \
     ca-certificates \
     ldap-utils \
+    netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
 # Criar diretórios necessários

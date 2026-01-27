@@ -35,7 +35,14 @@ echo ""
 
 # 6. Testar conexão local dentro do container
 echo "6. Testando conexão SMTP local (dentro do container):"
-echo "QUIT" | docker-compose exec -T smtp nc localhost 25 2>&1 | head -3
+if docker-compose exec -T smtp which nc >/dev/null 2>&1; then
+    echo "QUIT" | docker-compose exec -T smtp nc localhost 25 2>&1 | head -3
+elif docker-compose exec -T smtp which telnet >/dev/null 2>&1; then
+    echo "QUIT" | timeout 2 docker-compose exec -T smtp telnet localhost 25 2>&1 | head -3 || echo "   (telnet pode não estar disponível)"
+else
+    # Usar bash com redirecionamento
+    docker-compose exec -T smtp bash -c 'echo "QUIT" | timeout 2 bash -c "exec 3<>/dev/tcp/localhost/25 && cat <&3 && exec 3<&-"' 2>&1 | head -3 || echo "   Teste de conexão não disponível (nc/telnet não instalados)"
+fi
 echo ""
 
 # 7. Verificar configuração do Postfix

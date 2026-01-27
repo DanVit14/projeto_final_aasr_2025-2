@@ -37,13 +37,21 @@ echo ""
 
 # Teste 3: Verificar se o Postfix está escutando
 echo "3. Verificando se o Postfix está escutando na porta 25..."
-SMTP_TEST=$(echo "QUIT" | docker-compose exec -T smtp nc localhost 25 2>&1 | head -1)
+if docker-compose exec -T smtp which nc >/dev/null 2>&1; then
+    SMTP_TEST=$(echo "QUIT" | docker-compose exec -T smtp nc localhost 25 2>&1 | head -1)
+elif docker-compose exec -T smtp which telnet >/dev/null 2>&1; then
+    SMTP_TEST=$(echo "QUIT" | timeout 2 docker-compose exec -T smtp telnet localhost 25 2>&1 | head -1)
+else
+    SMTP_TEST=$(docker-compose exec -T smtp bash -c 'echo "QUIT" | timeout 2 bash -c "exec 3<>/dev/tcp/localhost/25 && cat <&3 && exec 3<&-"' 2>&1 | head -1)
+fi
+
 if echo "$SMTP_TEST" | grep -q "220"; then
     echo -e "\033[0;32m✓ OK\033[0m"
     echo "   Postfix está respondendo: $SMTP_TEST"
 else
     echo -e "\033[1;31m✗ FALHOU\033[0m"
     echo "   Postfix não está respondendo corretamente"
+    echo "   Detalhes: $SMTP_TEST"
 fi
 echo ""
 
