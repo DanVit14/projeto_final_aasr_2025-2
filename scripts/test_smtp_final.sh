@@ -39,10 +39,12 @@ echo ""
 
 # 4. Verificar processos smtpd
 echo "4. Processos smtpd ativos:"
-SMTPD_COUNT=$(docker-compose exec smtp ps aux | grep -c "smtpd.*smtp" || echo "0")
-if [ "$SMTPD_COUNT" -gt "0" ]; then
+SMTPD_COUNT=$(docker-compose exec smtp ps aux 2>/dev/null | grep -c "smtpd.*smtp" 2>/dev/null || echo "0")
+# Garantir que é um número
+SMTPD_COUNT=${SMTPD_COUNT:-0}
+if [ "$SMTPD_COUNT" -gt 0 ] 2>/dev/null; then
     echo -e "\033[0;32m✓ $SMTPD_COUNT processo(s) smtpd rodando\033[0m"
-    docker-compose exec smtp ps aux | grep "smtpd.*smtp" | grep -v grep | head -2
+    docker-compose exec smtp ps aux 2>/dev/null | grep "smtpd.*smtp" | grep -v grep | head -2
 else
     echo -e "\033[1;33m⚠ Nenhum smtpd rodando (pode iniciar sob demanda)\033[0m"
 fi
