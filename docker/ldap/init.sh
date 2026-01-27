@@ -50,11 +50,19 @@ if [ ! -f "/var/lib/samba/private/sam.ldb" ]; then
     fi
 else
     echo "Domínio já existe. Usando configuração existente."
+    # Aplicar fix de autenticação mesmo se o domínio já existe
+    /usr/local/bin/fix_ldap_auth.sh
 fi
 
 # Verificar configuração
 echo "Verificando configuração do Samba..."
 testparm -s > /dev/null
+
+# Aplicar fix de autenticação antes de iniciar (se necessário)
+if [ -f "/var/lib/samba/private/sam.ldb" ]; then
+    echo "Aplicando configuração de autenticação LDAP..."
+    /usr/local/bin/fix_ldap_auth.sh
+fi
 
 # Iniciar serviços
 echo "Iniciando serviços Samba..."
