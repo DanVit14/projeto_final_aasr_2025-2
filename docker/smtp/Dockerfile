@@ -63,6 +63,10 @@ RUN echo "TLS_REQCERT never" >> /etc/ldap/ldap.conf
 COPY main.cf /etc/postfix/main.cf
 COPY master.cf /etc/postfix/master.cf
 COPY ldap/ /etc/postfix/ldap/
+COPY ldap-mailbox.sh /usr/local/bin/ldap-mailbox.sh
+COPY ldap-domain.sh /usr/local/bin/ldap-domain.sh
+COPY ldap-alias.sh /usr/local/bin/ldap-alias.sh
+COPY ldap-sender.sh /usr/local/bin/ldap-sender.sh
 COPY dovecot.conf /etc/dovecot/dovecot.conf
 COPY dovecot-ldap.conf.ext /etc/dovecot/dovecot-ldap.conf.ext
 COPY amavisd.conf /etc/amavis/conf.d/50-user
@@ -70,7 +74,9 @@ COPY init.sh /usr/local/bin/init.sh
 
 # Configurar propriedade dos arquivos do Postfix
 RUN chmod +x /usr/local/bin/init.sh \
+    && chmod +x /usr/local/bin/ldap-*.sh \
     && chown root:root /etc/postfix/main.cf /etc/postfix/master.cf \
+    && chown root:root /usr/local/bin/ldap-*.sh \
     && chmod 644 /etc/postfix/main.cf /etc/postfix/master.cf
 
 EXPOSE 25 587 993 995

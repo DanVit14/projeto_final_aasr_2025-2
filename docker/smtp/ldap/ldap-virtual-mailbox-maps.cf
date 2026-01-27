@@ -1,5 +1,9 @@
 # Configuração LDAP para mapeamento de caixas de correio
-# Usando LDAPS (636) diretamente - StartTLS não está funcionando
+# PROBLEMA CONHECIDO: postmap não consegue conectar ao LDAP mesmo com ldapsearch funcionando
+# Isso pode ser um bug/limitação do Postfix com LDAP em containers Docker
+# 
+# SOLUÇÃO ALTERNATIVA: Usar script wrapper ou documentar como limitação
+# Por enquanto, mantendo configuração LDAPS (636) que é o que deveria funcionar
 server_host = ldap
 server_port = 636
 version = 3

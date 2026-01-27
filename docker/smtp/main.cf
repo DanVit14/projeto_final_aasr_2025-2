@@ -13,9 +13,11 @@ inet_protocols = ipv4
 mydestination = $myhostname, localhost.$mydomain, localhost
 
 # Domínio virtual (Maildir)
-virtual_mailbox_domains = ldap:/etc/postfix/ldap/ldap-virtual-mailbox-domains.cf
-virtual_mailbox_maps = ldap:/etc/postfix/ldap/ldap-virtual-mailbox-maps.cf
-virtual_alias_maps = ldap:/etc/postfix/ldap/ldap-virtual-alias-maps.cf
+# Usando scripts wrapper externos devido a problema conhecido com postmap/LDAP em containers Docker
+# Referência: https://github.com/docker-mailserver/docker-mailserver/issues/1468
+virtual_mailbox_domains = external:/usr/local/bin/ldap-domain.sh
+virtual_mailbox_maps = external:/usr/local/bin/ldap-mailbox.sh
+virtual_alias_maps = external:/usr/local/bin/ldap-alias.sh
 virtual_mailbox_base = /var/mail/vhosts
 virtual_minimum_uid = 100
 virtual_uid_maps = static:5000
@@ -34,7 +36,8 @@ smtpd_sasl_local_domain = $mydomain
 broken_sasl_auth_clients = yes
 
 # Autenticação LDAP para SASL
-smtpd_sender_login_maps = ldap:/etc/postfix/ldap/ldap-sender-login-maps.cf
+# Usando script wrapper externo
+smtpd_sender_login_maps = external:/usr/local/bin/ldap-sender.sh
 
 # Restrições de recebimento
 smtpd_recipient_restrictions = 
