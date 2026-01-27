@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
     libsasl2-modules \
     libsasl2-modules-ldap \
     ca-certificates \
+    ldap-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Criar diretórios necessários
@@ -42,7 +43,10 @@ COPY dovecot-ldap.conf.ext /etc/dovecot/dovecot-ldap.conf.ext
 COPY amavisd.conf /etc/amavis/conf.d/50-user
 COPY init.sh /usr/local/bin/init.sh
 
-RUN chmod +x /usr/local/bin/init.sh
+# Configurar propriedade dos arquivos do Postfix
+RUN chmod +x /usr/local/bin/init.sh \
+    && chown root:root /etc/postfix/main.cf /etc/postfix/master.cf \
+    && chmod 644 /etc/postfix/main.cf /etc/postfix/master.cf
 
 EXPOSE 25 587 993 995
 

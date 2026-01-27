@@ -51,6 +51,9 @@ chown -R postfix:postfix /var/spool/postfix/var/lib/sasl2
 chown -R amavis:amavis /var/lib/amavis 2>/dev/null || true
 chown -R dovecot:dovecot /var/run/dovecot 2>/dev/null || true
 
+# Garantir que os arquivos de configuração do Postfix sejam do root
+chown root:root /etc/postfix/main.cf /etc/postfix/master.cf 2>/dev/null || true
+
 # Atualizar definições de vírus do ClamAV (em background)
 echo "Atualizando definições de vírus do ClamAV..."
 freshclam >/dev/null 2>&1 &
