@@ -18,14 +18,14 @@ echo "2. E-mails na queue do Postfix:"
 docker-compose exec smtp postqueue -p 2>/dev/null || echo "   Queue vazia ou erro ao verificar"
 echo ""
 
-# 3. Verificar se o Postfix consegue resolver o destinatário via LDAP
-echo "3. Testando resolução do destinatário user1@empresa.local via LDAP:"
-docker-compose exec smtp postmap -q user1@empresa.local ldap:/etc/postfix/ldap/ldap-virtual-mailbox-maps.cf 2>&1 || echo "   Erro ao consultar LDAP"
+# 3. Verificar se o Postfix consegue resolver o destinatário (usa hash gerado do LDAP)
+echo "3. Testando resolução do destinatário user1@empresa.local (hash):"
+docker-compose exec smtp postmap -q user1@empresa.local hash:/etc/postfix/ldap/virtual-mailbox-maps.hash 2>&1 || echo "   Erro ao consultar hash"
 echo ""
 
-# 4. Verificar se o domínio empresa.local está configurado
-echo "4. Testando se domínio empresa.local está configurado:"
-docker-compose exec smtp postmap -q empresa.local ldap:/etc/postfix/ldap/ldap-virtual-mailbox-domains.cf 2>&1 || echo "   Erro ao consultar domínio"
+# 4. Verificar se o domínio empresa.local está configurado (hash)
+echo "4. Testando se domínio empresa.local está configurado (hash):"
+docker-compose exec smtp postmap -q empresa.local hash:/etc/postfix/ldap/virtual-mailbox-domains.hash 2>&1 || echo "   Erro ao consultar domínio"
 echo ""
 
 # 5. Verificar configuração do virtual_mailbox_base
