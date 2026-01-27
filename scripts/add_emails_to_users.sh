@@ -25,7 +25,8 @@ sleep 3
 echo ""
 
 echo "3. Verificando se os emails foram adicionados..."
-result=$(docker-compose exec -T ldap ldapsearch -x -H ldaps://localhost:636 \
+# Verificar do container SMTP (que é quem vai usar o LDAP)
+result=$(docker-compose exec -T smtp ldapsearch -x -H ldaps://ldap:636 \
     -b "dc=empresa,dc=local" \
     -D "cn=Administrator,cn=Users,dc=empresa,dc=local" \
     -w "Admin@123" \
@@ -33,13 +34,24 @@ result=$(docker-compose exec -T ldap ldapsearch -x -H ldaps://localhost:636 \
     "(&(objectClass=person)(mail=*))" \
     "sAMAccountName mail" 2>&1 | grep -v "^#")
 
-if [ -n "$result" ]; then
+if [ -n "$result" ] && echo "$result" | grep -q "^mail:"; then
     echo "$result" | head -20
+    echo ""
+else
+    echo "   (Nenhum resultado encontrado ainda)"
     echo ""
 fi
 
 echo "4. Contando usuários com email:"
-count=$(echo "$result" | grep -c "^mail:" 2>/dev/null || echo "0")
+# Contar do container SMTP
+count=$(docker-compose exec -T smtp ldapsearch -x -H ldaps://ldap:636 \
+    -b "dc=empresa,dc=local" \
+    -D "cn=Administrator,cn=Users,dc=empresa,dc=local" \
+    -w "Admin@123" \
+    -LLL \
+    "(&(objectClass=person)(mail=*))" \
+    "mail" 2>&1 | grep -v "^#" | grep -c "^mail:" 2>/dev/null || echo "0")
+
 echo "   Total de usuários com email: $count"
 echo ""
 
@@ -122,8 +134,9 @@ EOF
         echo ""
         echo "Tentando método alternativo usando samba-tool..."
         
-        # Tentar usar samba-tool para adicionar atributos
-        docker-compose exec -T ldap samba-tool user setpassword admin --newpassword="Admin@123" --must-change-at-next-login=no 2>&1
+    # Tentar usar samba-tool para verificar usuários
+    echo "Verificando usuários existentes:"
+    docker-compose exec -T ldap samba-tool user list 2>&1 | head -10
         
         # Usar samba-tool para modificar atributos (se suportado)
         echo "Nota: Pode ser necessário adicionar emails manualmente usando:"
