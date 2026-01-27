@@ -44,16 +44,13 @@ echo "3. Testando PostgreSQL (database:5432)..."
 PGPASSWORD=db_pass_123 psql -h database -U app_user -d empresa_db -c "SELECT 1;" 2>/dev/null && echo -e "${GREEN}OK${NC}" || echo -e "${RED}FALHOU${NC}"
 echo ""
 
-# Teste 4: SMTP (banner 220; até 3 tentativas com 2s de espera entre elas)
+# Teste 4: SMTP (banner 220; timeout 15s para dar tempo ao Postfix responder)
 echo "4. Testando SMTP (smtp:25)..."
 smtp_ok=0
-for _ in 1 2 3; do
-  if (echo "QUIT" | timeout 6 nc -w 4 smtp 25 2>/dev/null || true) | head -5 | grep -q "220"; then
-    smtp_ok=1
-    break
-  fi
-  sleep 2
-done
+# Usar timeout maior e aguardar resposta do Postfix (pode demorar se estiver ocupado com Amavis/ClamAV)
+if (echo "QUIT" | timeout 15 nc -w 12 smtp 25 2>/dev/null || true) | head -10 | grep -q "220"; then
+  smtp_ok=1
+fi
 [ "$smtp_ok" -eq 1 ] && echo -e "${GREEN}OK${NC}" || echo -e "${RED}FALHOU${NC}"
 echo ""
 
