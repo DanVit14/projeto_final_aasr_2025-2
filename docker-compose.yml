@@ -56,7 +56,7 @@ services:
       aasr_net:
         ipv4_address: 10.0.1.30
     ports:
-      - "25:25"     # SMTP
+      - "2525:25"   # SMTP (2525 no host -> 25 no container, evita conflito com firewall)
       - "587:587"   # SMTP Submission
       - "993:993"   # IMAPS
       - "995:995"   # POP3S
