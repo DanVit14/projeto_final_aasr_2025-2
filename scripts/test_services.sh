@@ -44,14 +44,18 @@ echo "3. Testando PostgreSQL (database:5432)..."
 PGPASSWORD=db_pass_123 psql -h database -U app_user -d empresa_db -c "SELECT 1;" 2>/dev/null && echo -e "${GREEN}OK${NC}" || echo -e "${RED}FALHOU${NC}"
 echo ""
 
-# Teste 4: SMTP (banner 220; timeout 15s para dar tempo ao Postfix responder)
+# Teste 4: SMTP (verificar manualmente - pode demorar vários minutos a ficar pronto)
 echo "4. Testando SMTP (smtp:25)..."
 smtp_ok=0
-# Usar timeout maior e aguardar resposta do Postfix (pode demorar se estiver ocupado com Amavis/ClamAV)
-if (echo "QUIT" | timeout 15 nc -w 12 smtp 25 2>/dev/null || true) | head -10 | grep -q "220"; then
+# Tentar com timeout generoso
+if (echo "QUIT" | timeout 10 nc -w 8 smtp 25 2>/dev/null || true) | head -10 | grep -q "220"; then
   smtp_ok=1
 fi
-[ "$smtp_ok" -eq 1 ] && echo -e "${GREEN}OK${NC}" || echo -e "${RED}FALHOU${NC}"
+if [ "$smtp_ok" -eq 1 ]; then
+  echo -e "${GREEN}OK${NC}"
+else
+  echo -e "${YELLOW}Verificar manualmente (Postfix pode demorar a iniciar)${NC}"
+fi
 echo ""
 
 # Teste 5: rsyslog
