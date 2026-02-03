@@ -37,12 +37,10 @@
 - **iptables/netfilter**
 - **rsyslog** (para logs do firewall)
 
-### Container 3: SMTP + Antivírus
+### Container 3: SMTP
 - **Postfix** (servidor SMTP)
-- **ClamAV** (antivírus)
-- **Amavis** (integração Postfix + ClamAV)
-- **SpamAssassin** (antispam)
-- **Dovecot** (opcional, para IMAP/POP3)
+- **Dovecot** (IMAP/POP3 para acesso a caixas)
+- **Nota:** ClamAV/Amavis/SpamAssassin não implementados (ver `docs/servicos/SMTP.md` para justificativa)
 
 ### Container 4: Banco de Dados
 - **PostgreSQL 15** (banco de dados)
@@ -61,11 +59,11 @@
 ### Espaço em Disco por Container
 - LDAP/AD: ~2GB
 - Firewall: ~500MB
-- SMTP+AV: ~3GB (ClamAV precisa de espaço para definições de vírus)
+- SMTP: ~1GB
 - Database: ~1GB (sem dados)
 - Logs+NTP: ~500MB
 
-**Total estimado:** ~7-8GB + espaço para dados e logs
+**Total estimado:** ~5GB + espaço para dados e logs
 
 ## Portas que serão utilizadas
 
@@ -136,4 +134,4 @@ groups | grep docker
 
 4. **Backup:** Configure backups regulares dos volumes Docker (especialmente do banco de dados).
 
-5. **Logs:** Monitore o espaço em disco, especialmente os logs do rsyslog e do ClamAV.
+5. **Logs:** Monitore o espaço em disco, especialmente os logs do rsyslog centralizado.
