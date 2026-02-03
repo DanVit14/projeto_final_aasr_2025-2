@@ -37,9 +37,11 @@ services:
         ipv4_address: 10.0.1.20
     ports:
       - "2222:22"   # SSH (2222 no host para não conflitar com SSH da VM em 22)
+      - "5433:5432" # PostgreSQL via firewall (proxy para database)
     volumes:
       - ./docker/firewall/iptables.rules:/etc/iptables/rules.v4:ro
       - ./docker/firewall/firewall.sh:/usr/local/bin/firewall.sh:ro
+      - ./docker/firewall/setup_forward.sh:/usr/local/bin/setup_forward.sh:ro
     cap_add:
       - NET_ADMIN
       - NET_RAW

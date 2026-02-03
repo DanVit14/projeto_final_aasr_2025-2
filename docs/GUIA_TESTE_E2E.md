@@ -11,37 +11,29 @@ Documentação objetiva do teste de integração completo dos 6 serviços.
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     Rede Docker: 10.0.1.0/24                │
-└─────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────┘
 
 ┌──────────────┐
-│   CLIENTE    │ 10.0.1.10 (Inicia o teste)
+│   CLIENTE    │ 10.0.1.60 (Inicia o teste)
 └──────┬───────┘
        │
-       ├─────────────────┐
-       │                 │
-       ▼                 ▼
-  ┌─────────┐      ┌─────────┐
-  │  LDAP   │      │  SMTP   │ 10.0.1.30
-  │10.0.1.20│      └────┬────┘
-  └─────────┘           │
-       ▲                │
-       │                │
-       │                ├──────────────┐
-       │                │              │
-       └────────────────┘              ▼
-     (validação user)          ┌──────────────┐
-                               │  LOGS-NTP    │ 10.0.1.50
-                               │  (rsyslog)   │
-                               └──────────────┘
-
-                ┌──────────────┐
-                │  FIREWALL    │ 10.0.1.60 (Rede protegida)
-                └──────────────┘
-
-                ┌──────────────┐
-                │  DATABASE    │ 10.0.1.40
-                │ (PostgreSQL) │
-                └──────────────┘
+       ├─────────────────┬──────────────────┐
+       │                 │                  │
+       ▼                 ▼                  ▼
+  ┌─────────┐      ┌─────────┐      ┌────────────┐
+  │  LDAP   │      │  SMTP   │      │  FIREWALL  │ 10.0.1.20
+  │10.0.1.30│      │10.0.1.30│      └─────┬──────┘
+  └─────────┘      └────┬────┘            │
+       ▲                │                 │ (Port Forward)
+       │                │                 │ 5432 → Database
+       │                ├──────────┐      │
+       │                │          │      ▼
+       └────────────────┘          ▼  ┌──────────────┐
+     (validação user)      ┌────────────┐  DATABASE    │ 10.0.1.40
+                           │  LOGS-NTP  │◄─┴────────────┤
+                           │ (rsyslog)  │  (via Firewall)
+                           └────────────┘  PostgreSQL
+                            10.0.1.50      └──────────────┘
 ```
 
 ### Comunicação no Teste
@@ -69,21 +61,30 @@ FLUXO COMPLETO:
    - Envia logs via rsyslog
    - Protocolo: UDP porta 514
 
-6. CLIENTE → DATABASE
+6. CLIENTE → FIREWALL → DATABASE
+   - Cliente conecta em Firewall:5432
+   - Firewall faz DNAT para Database:5432 (port forward)
    - Insere auditoria (test_id, usuário, ação)
    - Consulta auditoria
-   - Porta: 5432 (PostgreSQL)
+   - Firewall registra conexão em logs
+
+7. FIREWALL (Integrado)
+   - Recebe tráfego do cliente
+   - Aplica regras iptables (NAT, FORWARD, LOG)
+   - Encaminha para Database
+   - Registra em /var/log/kern.log
 ```
 
 ### Portas Utilizadas
 
 | Serviço | Container | IP | Porta | Protocolo |
 |---------|-----------|----|----|-----------|
-| LDAP | ldap | 10.0.1.20 | 389 | TCP |
+| Firewall | firewall | 10.0.1.20 | 5432 (forward) | TCP |
+| LDAP | ldap | 10.0.1.30 | 389 | TCP |
 | SMTP | smtp | 10.0.1.30 | 25 | TCP |
-| rsyslog | logs-ntp | 10.0.1.50 | 514 | UDP |
 | PostgreSQL | database | 10.0.1.40 | 5432 | TCP |
-| Firewall | firewall | 10.0.1.60 | - | - |
+| rsyslog | logs-ntp | 10.0.1.50 | 514 | UDP |
+| Cliente | cliente | 10.0.1.60 | - | - |
 
 ---
 
@@ -208,6 +209,43 @@ SELECT COUNT(*) FROM audit_log;"
 ```
 
 **Sucesso:** Query retorna o registro inserido
+
+---
+
+#### PASSO 7 (OPCIONAL): Firewall como Proxy
+**Objetivo:** Demonstrar que firewall está integrado no fluxo de dados
+
+**Script Dedicado:**
+```bash
+./scripts/test_firewall_forward.sh
+```
+
+**O Que Testa:**
+```bash
+# 1. Verifica regras NAT no firewall
+docker-compose exec firewall iptables -t nat -L PREROUTING -n -v
+
+# 2. Testa conexão via firewall (port forward)
+docker-compose exec cliente bash -c '</dev/tcp/10.0.1.20/5432'
+
+# 3. Executa query PostgreSQL via firewall
+docker-compose exec cliente psql -h 10.0.1.20 -U app_user -d empresa_db -c "SELECT NOW();"
+
+# 4. Verifica logs do firewall
+docker-compose exec firewall dmesg | grep "FW-DB"
+```
+
+**Sucesso:** 
+- Regras NAT ativas
+- Conexão via firewall funciona
+- Query executada com sucesso
+- Firewall registrou conexão em logs
+
+**Demonstra:**
+- **Integração real do firewall** no fluxo de dados
+- **Port forwarding** (DNAT)
+- **Logging** de conexões
+- **Transparência** para cliente (acessa via firewall como se fosse database)
 
 ---
 
