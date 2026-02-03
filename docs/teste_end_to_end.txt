@@ -45,14 +45,14 @@ Criando Maildirs (new, cur, tmp) para cada caixa...
    ✓ Maildirs criados/atualizados
 
 Verificando arquivos criados...
--rw-r--r-- 1 root root 120 Feb  3 18:53 /etc/postfix/ldap/sender-login-maps.hash
--rw-r--r-- 1 root root 218 Feb  3 18:53 /etc/postfix/ldap/virtual-alias-maps.hash
--rw-r--r-- 1 root root  28 Feb  3 18:53 /etc/postfix/ldap/virtual-mailbox-domains.hash
--rw-r--r-- 1 root root 212 Feb  3 18:53 /etc/postfix/ldap/virtual-mailbox-maps.hash
--rw-r--r-- 1 root root 12288 Feb  3 18:53 /etc/postfix/ldap/sender-login-maps.hash.db
--rw-r--r-- 1 root root 12288 Feb  3 18:53 /etc/postfix/ldap/virtual-alias-maps.hash.db
--rw-r--r-- 1 root root 12288 Feb  3 18:53 /etc/postfix/ldap/virtual-mailbox-domains.hash.db
--rw-r--r-- 1 root root 12288 Feb  3 18:53 /etc/postfix/ldap/virtual-mailbox-maps.hash.db
+-rw-r--r-- 1 root root 120 Feb  3 19:18 /etc/postfix/ldap/sender-login-maps.hash
+-rw-r--r-- 1 root root 218 Feb  3 19:18 /etc/postfix/ldap/virtual-alias-maps.hash
+-rw-r--r-- 1 root root  28 Feb  3 19:18 /etc/postfix/ldap/virtual-mailbox-domains.hash
+-rw-r--r-- 1 root root 212 Feb  3 19:18 /etc/postfix/ldap/virtual-mailbox-maps.hash
+-rw-r--r-- 1 root root 12288 Feb  3 19:18 /etc/postfix/ldap/sender-login-maps.hash.db
+-rw-r--r-- 1 root root 12288 Feb  3 19:18 /etc/postfix/ldap/virtual-alias-maps.hash.db
+-rw-r--r-- 1 root root 12288 Feb  3 19:18 /etc/postfix/ldap/virtual-mailbox-domains.hash.db
+-rw-r--r-- 1 root root 12288 Feb  3 19:18 /etc/postfix/ldap/virtual-mailbox-maps.hash.db
 
 ✓ Processo de atualização concluído!
 
@@ -74,15 +74,14 @@ Verificando arquivos criados...
 ============================================================
 
 4.1. Procurar logs do teste no servidor logs-ntp...
-[1;33m⚠ Logs não encontrados no servidor central[0m
-   (podem estar em outro path ou demorar a propagar)
+[0;32m✓ Logs encontrados no servidor central (1 linhas)[0m
 
 4.2. Verificar logs locais do Postfix...
-2026-02-03T18:52:33.764741+00:00 mail postfix/postfix-script[1054]: the Postfix mail system is running: PID: 332
-2026-02-03T18:53:03.773021+00:00 mail postfix[1056]: Postfix is using backwards-compatible default settings
-2026-02-03T18:53:03.773081+00:00 mail postfix[1056]: See http://www.postfix.org/COMPATIBILITY_README.html for details
-2026-02-03T18:53:03.773085+00:00 mail postfix[1056]: To disable backwards compatibility use "postconf compatibility_level=3.6" and "postfix reload"
-2026-02-03T18:53:03.800630+00:00 mail postfix/postfix-script[1063]: the Postfix mail system is running: PID: 332
+2026-02-03T19:17:35.963566+00:00 mail postfix/postfix-script[1697]: the Postfix mail system is running: PID: 332
+2026-02-03T19:18:05.976466+00:00 mail postfix[1706]: Postfix is using backwards-compatible default settings
+2026-02-03T19:18:05.977468+00:00 mail postfix[1706]: See http://www.postfix.org/COMPATIBILITY_README.html for details
+2026-02-03T19:18:05.977770+00:00 mail postfix[1706]: To disable backwards compatibility use "postconf compatibility_level=3.6" and "postfix reload"
+2026-02-03T19:18:06.010035+00:00 mail postfix/postfix-script[1720]: the Postfix mail system is running: PID: 332
 
 ============================================================
 [0;34mPASSO 5/6: Auditoria no Banco de Dados[0m
@@ -103,12 +102,12 @@ INSERT 0 1
 6.1. Consultar registros de auditoria do teste...
  id |         timestamp          |         test_id          | usuario |           acao            | status  
 ----+----------------------------+--------------------------+---------+---------------------------+---------
-  1 | 2026-02-03 18:53:22.678377 | TEST_E2E_20260203_155305 | user1   | Envio de email end-to-end | SUCESSO
+  2 | 2026-02-03 19:18:19.292552 | TEST_E2E_20260203_161802 | user1   | Envio de email end-to-end | SUCESSO
 (1 row)
 
 
 6.2. Estatísticas de auditoria...
-[0;32m✓ Total de registros de auditoria no sistema: 1[0m
+[0;32m✓ Total de registros de auditoria no sistema: 2[0m
 
 ============================================================
 [0;32m  TESTE END-TO-END CONCLUÍDO![0m
@@ -119,7 +118,7 @@ Fluxo completo executado:
   [0;32m✓[0m 2. Cliente → SMTP: Envio de email
   [0;32m✓[0m 3. SMTP → LDAP: Validação de contas
   [0;32m✓[0m 4. SMTP: Entrega no Maildir
-  [1;33m⚠[0m 5. SMTP → Logs-NTP: Logs (não encontrados no path esperado)
+  [0;32m✓[0m 5. SMTP → Logs-NTP: Logs centralizados
   [0;32m✓[0m 6. Sistema → Database: Auditoria registrada
   [0;32m✓[0m 7. Cliente → Database: Consulta de auditoria
 
@@ -131,10 +130,10 @@ Serviços integrados: \033[0;36m6/6\033[0m
   • Cliente (inicializador)
   • Firewall (rede protegida)
 
-ID do Teste: \033[0;36mTEST_E2E_20260203_155305\033[0m
+ID do Teste: \033[0;36mTEST_E2E_20260203_161802\033[0m
 
 Para verificar novamente:
-  docker-compose exec database psql -U app_user -d empresa_db -c "SELECT * FROM audit_log WHERE test_id = 'TEST_E2E_20260203_155305';"
+  docker-compose exec database psql -U app_user -d empresa_db -c "SELECT * FROM audit_log WHERE test_id = 'TEST_E2E_20260203_161802';"
 
 Para limpar auditoria de testes:
   docker-compose exec database psql -U app_user -d empresa_db -c "DELETE FROM audit_log WHERE test_id LIKE 'TEST_E2E_%';"
