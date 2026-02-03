@@ -215,6 +215,45 @@ docker-compose ps
 
 ---
 
+## 🎯 Pergunta 11: "Demonstra integração real entre serviços" (MATADORA!)
+
+### Resposta ✅
+> "Criei um teste end-to-end que simula workflow corporativo completo: usuário autentica no LDAP, envia email via SMTP (validado contra LDAP), email é entregue no Maildir, logs vão para rsyslog centralizado, e sistema registra auditoria no PostgreSQL. Cliente consulta a auditoria no final. **Todos os 6 serviços integrados em um fluxo único**."
+
+### Demonstração AO VIVO (30s) 🔥
+```bash
+# Executar workflow completo
+./scripts/test_end_to_end.sh
+
+# Output mostrará:
+# ✓ Autenticação LDAP
+# ✓ Email enviado e entregue
+# ✓ Logs centralizados
+# ✓ Auditoria no PostgreSQL
+# ✓ Consulta de auditoria
+```
+
+### Fluxo Visual
+```
+Cliente → LDAP (auth) → SMTP (email) → Maildir (entrega)
+            ↓             ↓               ↓
+         rsyslog ← logs centralizados
+                         ↓
+                    PostgreSQL (audit_log)
+                         ↓
+                    Cliente consulta
+```
+
+**Ver:** `docs/TESTE_END_TO_END.md`
+
+**Pontos fortes:**
+- Não é teste de "ping" - é workflow REAL
+- Rastreabilidade completa (ID único)
+- Auditoria no banco de dados
+- 6/6 serviços envolvidos
+
+---
+
 ## 📚 Documentos de Referência Rápida
 
 ### Durante Apresentação
