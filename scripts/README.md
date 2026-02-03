@@ -60,6 +60,15 @@ docker-compose exec cliente /usr/local/bin/test_services.sh
 
 ---
 
+### Evidências do Sistema (Apresentação)
+
+```bash
+# Mostrar evidências completas (auditoria, logs, firewall, LDAP, NTP)
+./scripts/show_evidencias.sh
+```
+
+---
+
 ### Backup e Restore (Database)
 
 ```bash
@@ -135,10 +144,11 @@ Todos os scripts mostram:
 | `test_database.sh` | Teste do database |
 | `test_logs_ntp.sh` | Teste de logs e NTP |
 | `test_services.sh` | Teste básico (no container) |
+| `show_evidencias.sh` | Mostrar evidências do sistema |
 | `backup_db.sh` | Backup do PostgreSQL |
 | `restore_db.sh` | Restore do PostgreSQL |
 
-**Total: 10 scripts essenciais** ✅
+**Total: 11 scripts essenciais** ✅
 
 ---
 
