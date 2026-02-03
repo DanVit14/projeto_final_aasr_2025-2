@@ -112,9 +112,11 @@ docker-compose exec [servico] bash
 
 - **PLANO_PROJETO.md** - Plano completo de implementação
 - **REQUIREMENTS.md** - Lista de dependências e requisitos
+- **INSTRUCOES_FINAIS.md** - Guia passo-a-passo para execução e apresentação
 - **docs/TOPOLOGIA.md** - Diagrama de topologia de rede e endereçamento
 - **docs/DECISOES_TECNICAS.md** - Decisões de arquitetura e problemas resolvidos
 - **docs/OPCAO_SEM_ANTIVIRUS.md** - Justificativa técnica sobre antivírus
+- **docs/FIREWALL_DOCKER.md** - Nota técnica sobre firewall em ambiente Docker
 - **docs/EVIDENCIAS/** - Guia de coleta de evidências para apresentação
 
 ## 🔧 Desenvolvimento

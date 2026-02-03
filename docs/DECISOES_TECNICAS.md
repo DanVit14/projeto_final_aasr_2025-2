@@ -308,6 +308,119 @@ volumes:
   - ./backups:/backups     # Read-write (default)
 ```
 
+## 🔥 Firewall em Ambiente Docker - Limitações Arquiteturais
+
+### Contexto
+
+O container `firewall` demonstra configuração de **iptables/Netfilter**, mas possui limitações inerentes à arquitetura Docker.
+
+### O que o Firewall Faz ✅
+
+1. **Protege o próprio container**:
+   - Regras INPUT bloqueiam acesso não autorizado
+   - SSH (porta 22) com controle de acesso
+   - Logging de tentativas de conexão
+
+2. **Protege o host**:
+   - Tráfego da rede externa → host → containers passa pelo iptables do host
+   - Portas mapeadas (2222:22, 2525:25) são filtradas
+
+3. **Demonstra configuração funcional**:
+   - 6 regras iptables ativas
+   - Política de deny-by-default
+   - Whitelist da rede 10.0.1.0/24
+
+### O que o Firewall NÃO Faz ❌
+
+**Tráfego inter-container NÃO passa pelo container firewall.**
+
+```
+Cliente (10.0.1.60) ──→ Docker Bridge (10.0.1.1) ──→ SMTP (10.0.1.30)
+                            ↑ Roteamento direto
+Firewall (10.0.1.20) ────────┘ NÃO intercepta
+```
+
+**Por quê?**
+- Docker gerencia roteamento interno via bridge network
+- Containers comunicam **diretamente** através do gateway (10.0.1.1)
+- Não há rota default apontando para o container firewall
+
+### Como Implementar Firewall Intermediário (Produção)
+
+#### Opção 1: Network Policies (Kubernetes)
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-smtp-from-cliente
+spec:
+  podSelector:
+    matchLabels:
+      app: smtp
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: cliente
+    ports:
+    - protocol: TCP
+      port: 25
+```
+
+#### Opção 2: Service Mesh (Istio/Linkerd)
+- Proxy sidecar em cada container
+- Controle de tráfego L7
+- mTLS automático
+
+#### Opção 3: Firewall como Gateway (Docker)
+Configuração necessária:
+```yaml
+firewall:
+  cap_add:
+    - NET_ADMIN
+  sysctls:
+    - net.ipv4.ip_forward=1
+```
+
+```bash
+# No firewall container
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+iptables -A FORWARD -i eth0 -j ACCEPT
+```
+
+```yaml
+# Outros containers
+networks:
+  aasr_net:
+    ipv4_address: 10.0.1.30
+    gateway: 10.0.1.20  # ← Firewall como gateway
+```
+
+**Não implementado porque:**
+- Complexidade elevada
+- Requer reconfiguração completa da rede
+- Risco de quebrar outros serviços
+- Docker já fornece isolamento de rede adequado
+
+### Segurança Efetiva no Projeto
+
+Apesar da limitação do firewall intermediário, o projeto possui **múltiplas camadas de segurança**:
+
+1. **Isolamento de Rede** - Docker bridge customizada (10.0.1.0/24)
+2. **Firewall no Host** - iptables protege portas expostas
+3. **Autenticação LDAP** - Controle de acesso centralizado
+4. **ACLs** - Permissões granulares por usuário/grupo
+5. **Relay Restrictions (SMTP)** - Apenas rede confiável pode enviar
+6. **SpamAssassin** - Filtragem de conteúdo malicioso
+
+### Justificativa para Apresentação
+
+**Argumento técnico:**
+> "O container firewall demonstra configuração funcional de iptables/Netfilter. Em ambientes Docker de produção, a segmentação de rede entre containers é tipicamente implementada através de Network Policies (Kubernetes), Service Mesh (Istio), ou firewalls externos. O Docker já fornece isolamento de rede através da bridge customizada, e o projeto implementa múltiplas camadas de defesa (autenticação LDAP, ACLs, relay restrictions)."
+
+**Se questionado sobre tráfego inter-container:**
+> "Para implementar um firewall intermediário em Docker, seria necessário configurar o container firewall como gateway da rede (ip_forward, NAT, rotas default), o que adiciona complexidade significativa. Optei por demonstrar a configuração de iptables e focar em outras camadas de segurança que são mais relevantes em ambientes corporativos modernos."
+
 ## 🎓 Lições Aprendidas
 
 1. **Start Simple, Add Complexity**: Começar com Postfix mínimo, depois adicionar features
@@ -317,6 +430,7 @@ volumes:
 5. **Versionamento Completo**: Tudo no Git (configs, scripts, Dockerfiles)
 6. **Documentação Progressiva**: Documentar problemas **durante** resolução, não depois
 7. **Testes Automatizados**: Script `run_all_tests.sh` economiza horas de testes manuais
+8. **Honestidade Técnica**: Documentar limitações é mais profissional que fingir que tudo é perfeito
 
 ## 📚 Referências
 
