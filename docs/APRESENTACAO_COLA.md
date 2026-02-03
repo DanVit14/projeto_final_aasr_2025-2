@@ -298,12 +298,42 @@ docker-compose exec database psql -U app_user -d empresa_db -c "SELECT 1;"
 
 ---
 
+## 🎯 Pergunta 12: "Logs centralizados funcionam?"
+
+### Resposta ✅
+> "Sim! rsyslog centralizado funciona - todos os containers enviam logs para logs-ntp via UDP:514. Os logs são organizados por hostname em `/var/log/remote/`. Se houver algum problema, tenho scripts de diagnóstico e correção prontos."
+
+### Demonstração AO VIVO
+```bash
+# Terminal 1: Monitorar logs
+docker-compose exec logs-ntp tail -f /var/log/remote/mail.empresa.local/postfix.log
+
+# Terminal 2: Gerar log
+docker-compose exec smtp logger "DEMO_$(date +%s)"
+
+# Log aparecerá no Terminal 1!
+```
+
+### Se Logs Não Funcionarem
+```bash
+# Diagnosticar
+./scripts/diagnose_rsyslog.sh
+
+# Corrigir
+./scripts/fix_rsyslog.sh
+```
+
+**Ver:** `docs/RSYSLOG_CENTRALIZADO.md`
+
+---
+
 ## ✅ Checklist Pré-Apresentação
 
 - [ ] Todos os serviços UP: `docker-compose ps`
 - [ ] Testes passando: `./scripts/run_test_services.sh`
 - [ ] Backup criado: `ls -lh backups/`
 - [ ] Logs limpos: `docker-compose logs --tail=10`
+- [ ] **rsyslog configurado**: `./scripts/fix_rsyslog.sh`
 - [ ] Esta cola aberta em aba separada 😉
 
 ---
