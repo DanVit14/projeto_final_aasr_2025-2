@@ -16,10 +16,10 @@ echo ""
 
 # 1. Samba rodando
 echo -e "${CYAN}1. Verificar Samba AD DC:${NC}"
-if docker-compose exec -T ldap samba-tool testparm -s 2>/dev/null | grep -q "workgroup"; then
-    echo -e "${GREEN}✓ Samba configurado${NC}"
+if docker-compose exec -T ldap pgrep -x samba >/dev/null 2>&1; then
+    echo -e "${GREEN}✓ Processo Samba rodando${NC}"
 else
-    echo -e "${RED}✗ Samba não configurado${NC}"
+    echo -e "${RED}✗ Samba não está rodando${NC}"
 fi
 echo ""
 

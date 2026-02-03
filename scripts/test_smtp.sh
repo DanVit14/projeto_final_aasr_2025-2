@@ -16,8 +16,8 @@ echo ""
 
 # 1. Postfix rodando
 echo -e "${CYAN}1. Verificar Postfix:${NC}"
-if docker-compose exec -T smtp postfix status 2>/dev/null | grep -q "running"; then
-    echo -e "${GREEN}✓ Postfix rodando${NC}"
+if docker-compose exec -T smtp pgrep -x master >/dev/null 2>&1; then
+    echo -e "${GREEN}✓ Processo Postfix (master) rodando${NC}"
 else
     echo -e "${RED}✗ Postfix não está rodando${NC}"
 fi
