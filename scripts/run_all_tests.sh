@@ -100,6 +100,15 @@ echo "========================================"
 echo ""
 ./scripts/test_integrations.sh
 echo ""
+sleep 2
+
+# Teste 9: End-to-End (Workflow Completo)
+echo "========================================"
+echo -e "${BLUE}  TESTE 9: Workflow End-to-End${NC}"
+echo "========================================"
+echo ""
+./scripts/test_end_to_end.sh
+echo ""
 
 # Resumo final
 echo ""
@@ -116,6 +125,7 @@ echo "  ✓ Firewall (iptables/Netfilter)"
 echo "  ✓ NTP (sincronização de tempo)"
 echo "  ✓ SMTP (envio e entrega de email)"
 echo "  ✓ Integrações entre serviços (SMTP-LDAP, rsyslog, NTP)"
+echo "  ✓ Workflow end-to-end (LDAP→SMTP→Logs→Database)"
 echo ""
 echo "Próximos passos:"
 echo "  1. Testar restore do backup:"
