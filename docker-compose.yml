@@ -89,6 +89,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - ./backups:/backups
+      - ./scripts:/scripts:ro
     environment:
       - POSTGRES_DB=empresa_db
       - POSTGRES_USER=app_user

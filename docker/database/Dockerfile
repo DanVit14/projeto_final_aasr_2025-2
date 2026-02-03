@@ -3,6 +3,7 @@ FROM postgres:15
 # Instalar ferramentas adicionais
 RUN apt-get update && apt-get install -y \
     postgresql-contrib \
+    acl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY init.sql /docker-entrypoint-initdb.d/

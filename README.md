@@ -112,9 +112,10 @@ docker-compose exec [servico] bash
 
 - **PLANO_PROJETO.md** - Plano completo de implementação
 - **REQUIREMENTS.md** - Lista de dependências e requisitos
-- **docs/TOPOLOGIA.md** - Diagrama de topologia de rede
-- **docs/OPCAO_SEM_SCAN_ANTIVIRUS.md** - Nota sobre antivírus desativado
-- **docs/** - Documentação técnica detalhada
+- **docs/TOPOLOGIA.md** - Diagrama de topologia de rede e endereçamento
+- **docs/DECISOES_TECNICAS.md** - Decisões de arquitetura e problemas resolvidos
+- **docs/OPCAO_SEM_ANTIVIRUS.md** - Justificativa técnica sobre antivírus
+- **docs/EVIDENCIAS/** - Guia de coleta de evidências para apresentação
 
 ## 🔧 Desenvolvimento
 
@@ -136,15 +137,25 @@ docker-compose exec [servico] bash
 
 ## 📚 Tópicos Implementados
 
-- ✅ Permissões avançadas e ACLs
-- ✅ Firewall com Netfilter
-- ✅ NTP (sincronização de tempo)
-- ✅ Serviços de log e log centralizado
-- ✅ LDAP e integração com serviços
-- ✅ Samba/AD e compartilhamentos
-- ✅ Antivírus corporativo
-- ✅ Servidor SMTP (contas, aliases, domínio virtual, antispam, quotas, Maildir)
-- ✅ Banco de dados com CRUD, backup e restauração
+- ✅ **Permissões avançadas e ACLs** - Script `test_acls.sh` com cenários por departamento
+- ✅ **Firewall com Netfilter** - iptables com logging e controle de rede
+- ✅ **NTP (sincronização de tempo)** - chrony com múltiplas fontes
+- ✅ **Serviços de log e log centralizado** - rsyslog recebendo de todos os containers
+- ✅ **LDAP e integração com serviços** - Samba AD + Kerberos
+- ✅ **Samba/AD e compartilhamentos** - SMB/CIFS integrado com LDAP
+- ⚠️ **Antivírus corporativo** - Desativado (ver docs/OPCAO_SEM_ANTIVIRUS.md)
+- ✅ **Servidor SMTP** - Postfix + Dovecot + SpamAssassin + Maildir
+- ✅ **Banco de dados** - PostgreSQL com CRUD, backup e restore completos
+
+## 🧪 Scripts de Teste
+
+- **run_all_tests.sh** - Executa todos os testes sequencialmente
+- **run_test_services.sh** - Testa conectividade de todos os serviços
+- **test_crud_db.sh** - Demonstra operações CRUD no PostgreSQL
+- **test_acls.sh** - Testa permissões avançadas e ACLs
+- **test_firewall.sh** - Verifica regras iptables e conectividade
+- **test_ntp.sh** - Valida sincronização de tempo (chrony)
+- **test_smtp_completo.sh** - Teste completo de envio e entrega de email
 
 ## ⚠️ Notas Importantes
 
