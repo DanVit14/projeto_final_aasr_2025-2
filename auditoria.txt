@@ -1,0 +1,97 @@
+============================================================
+[0;36m  EVIDÊNCIAS DO SISTEMA - Projeto AASR 2025[0m
+============================================================
+
+[0;36m1. Status dos Containers:[0m
+NAME             IMAGE                                COMMAND                  SERVICE    CREATED          STATUS          PORTS
+cliente_teste    projeto_final_aasr_2025-2-cliente    "sleep infinity"         cliente    18 minutes ago   Up 18 minutes   
+database         projeto_final_aasr_2025-2-database   "docker-entrypoint.s…"   database   18 minutes ago   Up 18 minutes   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+firewall         projeto_final_aasr_2025-2-firewall   "/bin/bash /usr/loca…"   firewall   18 minutes ago   Up 18 minutes   0.0.0.0:2222->22/tcp, [::]:2222->22/tcp, 0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp
+ldap_ad          projeto_final_aasr_2025-2-ldap       "/usr/local/bin/init…"   ldap       18 minutes ago   Up 18 minutes   0.0.0.0:88->88/tcp, [::]:88->88/tcp, 0.0.0.0:135->135/tcp, [::]:135->135/tcp, 0.0.0.0:389->389/tcp, [::]:389->389/tcp, 0.0.0.0:445->445/tcp, [::]:445->445/tcp, 53/tcp, 0.0.0.0:636->636/tcp, [::]:636->636/tcp
+logs_ntp         projeto_final_aasr_2025-2-logs-ntp   "/start.sh"              logs-ntp   18 minutes ago   Up 18 minutes   0.0.0.0:123->123/udp, [::]:123->123/udp, 0.0.0.0:514->514/udp, [::]:514->514/udp, 0.0.0.0:514->514/tcp, [::]:514->514/tcp
+smtp_antivirus   projeto_final_aasr_2025-2-smtp       "/usr/local/bin/init…"   smtp       18 minutes ago   Up 18 minutes   0.0.0.0:587->587/tcp, [::]:587->587/tcp, 0.0.0.0:993->993/tcp, [::]:993->993/tcp, 0.0.0.0:995->995/tcp, [::]:995->995/tcp, 0.0.0.0:2525->25/tcp, [::]:2525->25/tcp
+
+============================================================
+[0;36m2. Registros de Auditoria (últimos 5):[0m
+============================================================
+ id |         timestamp          |         test_id          | usuario |           acao            |      servico      | status  |                                                                 detalhes                                                                 
+----+----------------------------+--------------------------+---------+---------------------------+-------------------+---------+------------------------------------------------------------------------------------------------------------------------------------------
+  3 | 2026-02-03 20:44:31.820447 | TEST_E2E_20260203_174414 | user1   | Envio de email end-to-end | LDAP+SMTP+rsyslog | SUCESSO | Email enviado de user1@empresa.local para user2@empresa.local. Autenticacao LDAP: CREATED. Entrega: OK. Logs centralizados: verificados.
+  2 | 2026-02-03 19:18:19.292552 | TEST_E2E_20260203_161802 | user1   | Envio de email end-to-end | LDAP+SMTP+rsyslog | SUCESSO | Email enviado de user1@empresa.local para user2@empresa.local. Autenticacao LDAP: CREATED. Entrega: OK. Logs centralizados: verificados.
+  1 | 2026-02-03 18:53:22.678377 | TEST_E2E_20260203_155305 | user1   | Envio de email end-to-end | LDAP+SMTP+rsyslog | SUCESSO | Email enviado de user1@empresa.local para user2@empresa.local. Autenticacao LDAP: CREATED. Entrega: OK. Logs centralizados: verificados.
+(3 rows)
+
+
+============================================================
+[0;36m3. Logs Centralizados (Rsyslog):[0m
+============================================================
+[1;33mHosts que enviaram logs:[0m
+total 20K
+drwx------ 2 root root 4.0K Feb  3 13:58 X
+drwx------ 2 root root 4.0K Jan 27 20:36 cliente.empresa.local
+drwx------ 2 root root 4.0K Jan 26 23:14 debian12
+drwx------ 2 root root 4.0K Jan 27 20:25 firewall
+drwx------ 2 root root 4.0K Jan 27 20:19 mail
+
+============================================================
+[0;36m4. Firewall - Regras NAT (Port Forwarding):[0m
+============================================================
+Chain PREROUTING (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 DNAT       6    --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:5432 to:10.0.1.40:5432
+
+Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain POSTROUTING (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 MASQUERADE  6    --  *      *       0.0.0.0/0            10.0.1.40            tcp dpt:5432
+
+Chain DOCKER_OUTPUT (0 references)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain DOCKER_POSTROUTING (0 references)
+ pkts bytes target     prot opt in     out     source               destination         
+
+============================================================
+[0;36m5. Usuários no LDAP (Samba AD DC):[0m
+============================================================
+Guest
+Administrator
+user2
+user1
+admin
+krbtgt
+
+============================================================
+[0;36m6. Sincronização de Tempo (Chrony):[0m
+============================================================
+Reference ID    : C8A007C4 (e.st1.ntp.br)
+Stratum         : 2
+Ref time (UTC)  : Tue Feb 03 20:46:57 2026
+System time     : 0.000788540 seconds fast of NTP time
+Last offset     : +0.000184739 seconds
+RMS offset      : 0.000623807 seconds
+Frequency       : 1.526 ppm slow
+Residual freq   : +0.269 ppm
+Skew            : 1.208 ppm
+Root delay      : 0.050440110 seconds
+Root dispersion : 0.001092286 seconds
+Update interval : 64.9 seconds
+Leap status     : Normal
+
+============================================================
+[0;32m  RESUMO DO SISTEMA[0m
+============================================================
+
+  [0;32m✓[0m Registros de auditoria: [0;36m3[0m
+  [0;32m✓[0m Usuários no LDAP: [0;36m6[0m
+  [0;32m✓[0m Hosts enviando logs: [0;36m5[0m
+  [0;32m✓[0m Regras NAT no firewall: [0;36m1[0m
+
+============================================================
+[0;32m  Sistema operacional e integrado![0m
+============================================================
