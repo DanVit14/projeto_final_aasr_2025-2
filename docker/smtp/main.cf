@@ -41,6 +41,12 @@ broken_sasl_auth_clients = yes
 # Usando arquivo hash atualizado por script
 smtpd_sender_login_maps = hash:/etc/postfix/ldap/sender-login-maps.hash
 
+# Restrições de relay (obrigatório no Postfix moderno)
+smtpd_relay_restrictions = 
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_unauth_destination
+
 # Restrições de recebimento
 smtpd_recipient_restrictions = 
     permit_mynetworks,
