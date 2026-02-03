@@ -30,7 +30,7 @@ echo ""
 
 # 3. Conectividade
 echo -e "${CYAN}3. Testar porta LDAP:${NC}"
-if timeout 3 docker-compose exec -T cliente nc -zv ldap 389 2>&1 | grep -q "succeeded\|open"; then
+if docker-compose exec -T cliente timeout 3 bash -c "echo > /dev/tcp/ldap/389" 2>/dev/null; then
     echo -e "${GREEN}✓ Porta 389 acessível${NC}"
 else
     echo -e "${RED}✗ Porta 389 não acessível${NC}"

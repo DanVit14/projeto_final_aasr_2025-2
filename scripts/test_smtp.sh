@@ -25,7 +25,7 @@ echo ""
 
 # 2. Porta SMTP
 echo -e "${CYAN}2. Testar porta SMTP:${NC}"
-if timeout 3 docker-compose exec -T cliente nc -zv smtp 25 2>&1 | grep -q "succeeded\|open"; then
+if docker-compose exec -T cliente timeout 3 bash -c "echo > /dev/tcp/smtp/25" 2>/dev/null; then
     echo -e "${GREEN}✓ Porta 25 acessível${NC}"
 else
     echo -e "${RED}✗ Porta 25 não acessível${NC}"

@@ -25,11 +25,11 @@ docker-compose exec -T firewall iptables -L FORWARD -n -v | head -7
 echo ""
 
 # 3. Análise
-DNAT_PKTS=$(docker-compose exec -T firewall iptables -t nat -L PREROUTING -n -v 2>/dev/null | grep "dpt:5432" | awk '{print $1}')
+DNAT_PKTS=$(docker-compose exec -T firewall iptables -t nat -L PREROUTING -n -v 2>/dev/null | grep "dpt:5432" | awk '{print $1}' | head -1)
 if [ -n "$DNAT_PKTS" ] && [ "$DNAT_PKTS" != "0" ]; then
     echo -e "${GREEN}✓ Firewall processou $DNAT_PKTS pacotes (port forward ativo)${NC}"
 else
-    echo -e "${RED}✗ Port forward não processou pacotes ainda${NC}"
+    echo -e "⚠️  Port forward ainda não processou pacotes (normal antes do teste E2E)"
 fi
 echo ""
 
