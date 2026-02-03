@@ -1,168 +1,333 @@
-# Projeto Final AASR 2025-2
+# Projeto Final - AASR 2025
 
-Infraestrutura corporativa completa distribuída em containers Docker.
+Infraestrutura Corporativa Integrada com Docker Compose
 
-## 📋 Requisitos
+---
 
-- **VM:** Debian 12 (limpa, sem instalações)
-- **RAM:** Mínimo 4GB (recomendado 8GB)
-- **Disco:** Mínimo 20GB (recomendado 40GB)
+## 📋 Visão Geral
 
-## 🚀 Setup Inicial na VM
+Sistema completo de infraestrutura corporativa simulada com 6 serviços integrados:
 
-### 1. Clonar o repositório
+1. **Firewall** - Proteção de rede e port forwarding
+2. **LDAP** (Samba AD DC) - Autenticação centralizada
+3. **SMTP** (Postfix + Dovecot) - Servidor de email
+4. **Database** (PostgreSQL) - Banco de dados e auditoria
+5. **Logs-NTP** (Rsyslog + Chrony) - Logs centralizados e sincronização de tempo
+6. **Cliente** - Testes e simulação de usuário
+
+---
+
+## 🚀 Início Rápido
+
+### 1. Clonar e Iniciar
+
 ```bash
-git clone https://github.com/DanVit14/projeto_final_aasr_2025-2.git
+git clone <url-do-repositorio>
 cd projeto_final_aasr_2025-2
-```
 
-### 2. Executar script de setup
-```bash
-chmod +x setup_vm.sh
-./setup_vm.sh
-```
-
-### 3. Fazer logout/login (para permissões Docker)
-```bash
-# Ou executar:
-newgrp docker
-```
-
-### 4. Verificar instalação
-```bash
-docker --version
-docker-compose --version
-```
-
-## 🏗️ Estrutura do Projeto
-
-```
-projeto_final_aasr_2025-2/
-├── docker-compose.yml          # Orquestração de containers
-├── setup_vm.sh                 # Script de instalação
-├── REQUIREMENTS.md             # Lista de dependências
-├── docker/
-│   ├── ldap/                   # Container LDAP/AD (Samba)
-│   ├── firewall/               # Container Firewall
-│   ├── smtp/                   # Container SMTP + Antivírus
-│   ├── database/               # Container PostgreSQL
-│   ├── logs-ntp/               # Container Logs + NTP
-│   └── cliente/                # Container Cliente de Teste
-├── scripts/
-│   ├── backup_db.sh            # Backup do banco
-│   ├── restore_db.sh           # Restauração do banco
-│   └── test_services.sh        # Testes dos serviços
-├── configs/                    # Configurações gerais
-├── backups/                    # Backups do banco
-└── docs/                       # Documentação técnica
-```
-
-## 🐳 Containers e Serviços
-
-| Container | IP | Serviços |
-|-----------|----|----------| 
-| ldap | 10.0.1.10 | Samba AD, LDAP, Kerberos, SMB |
-| firewall | 10.0.1.20 | iptables/netfilter |
-| smtp | 10.0.1.30 | Postfix, ClamAV, SpamAssassin |
-| database | 10.0.1.40 | PostgreSQL 15 |
-| logs-ntp | 10.0.1.50 | rsyslog, chrony |
-| cliente | 10.0.1.60 | Cliente de teste |
-
-## 🚦 Comandos Úteis
-
-### Iniciar todos os containers
-```bash
+# Build e iniciar
+docker-compose build
 docker-compose up -d
+
+# Aguardar 30s para inicialização
+sleep 30
 ```
 
-### Ver logs de um serviço
+### 2. Validar Instalação
+
 ```bash
-docker-compose logs -f [servico]
-# Exemplo: docker-compose logs -f ldap
+# Teste básico
+./scripts/test_services.sh
+
+# Teste completo (End-to-End)
+./scripts/test_end_to_end.sh
 ```
 
-### Parar todos os containers
+### 3. Ver Resultados
+
 ```bash
-docker-compose down
+cat docs/teste_end_to_end.txt
 ```
 
-### Rebuild de um container
-```bash
-docker-compose build [servico]
-docker-compose up -d [servico]
+**Esperado:** 6/6 serviços integrados ✓
+
+---
+
+## 📚 Documentação
+
+### Documentos Principais
+
+| Documento | Descrição |
+|-----------|-----------|
+| **[01_INSTALACAO.md](docs/01_INSTALACAO.md)** | Como instalar e executar o projeto |
+| **[02_TOPOLOGIA.md](docs/02_TOPOLOGIA.md)** | Arquitetura da rede e design do sistema |
+| **[03_TESTE_E2E.md](docs/03_TESTE_E2E.md)** | Teste de integração completo |
+
+### Documentação por Serviço
+
+| Serviço | Documento |
+|---------|-----------|
+| Firewall | **[servicos/FIREWALL.md](docs/servicos/FIREWALL.md)** |
+| LDAP | **[servicos/LDAP.md](docs/servicos/LDAP.md)** |
+| SMTP | **[servicos/SMTP.md](docs/servicos/SMTP.md)** |
+| Database | **[servicos/DATABASE.md](docs/servicos/DATABASE.md)** |
+| Logs-NTP | **[servicos/LOGS_NTP.md](docs/servicos/LOGS_NTP.md)** |
+| Cliente | **[servicos/CLIENTE.md](docs/servicos/CLIENTE.md)** |
+
+### Evidências
+
+- **[EVIDENCIAS/README.md](docs/EVIDENCIAS/README.md)** - Guia para coleta de evidências
+
+---
+
+## 🌐 Topologia
+
+```
+┌──────────────┐
+│   CLIENTE    │ 10.0.1.60
+└──────┬───────┘
+       │
+       ├─────────┬──────────────────┐
+       │         │                  │
+       ▼         ▼                  ▼
+  ┌─────────┐ ┌─────────┐   ┌────────────┐
+  │  LDAP   │ │  SMTP   │   │  FIREWALL  │ 10.0.1.20
+  │10.0.1.30│ │10.0.1.30│   └─────┬──────┘
+  └─────────┘ └────┬────┘         │ (Port Forward)
+                   │              │ 5432 → Database
+                   ▼              ▼
+             ┌────────────┐  ┌──────────────┐
+             │  LOGS-NTP  │  │   DATABASE   │ 10.0.1.40
+             │ (Rsyslog)  │  │ (PostgreSQL) │
+             └────────────┘  └──────────────┘
+              10.0.1.50
 ```
 
-### Entrar em um container
-```bash
-docker-compose exec [servico] bash
-# Exemplo: docker-compose exec database bash
-```
+**Rede:** 10.0.1.0/24 (aasr_net)
 
-### Backup do banco de dados
-```bash
-./scripts/backup_db.sh
-```
+Ver detalhes em [docs/02_TOPOLOGIA.md](docs/02_TOPOLOGIA.md)
 
-### Restaurar banco de dados
-```bash
-./scripts/restore_db.sh backups/backup_YYYYMMDD.sql
-```
+---
 
-## 📝 Documentação
+## 📊 Endereçamento
 
-- **PLANO_PROJETO.md** - Plano completo de implementação
-- **REQUIREMENTS.md** - Lista de dependências e requisitos
-- **INSTRUCOES_FINAIS.md** - Guia passo-a-passo para execução e apresentação
-- **docs/TOPOLOGIA.md** - Diagrama de topologia de rede e endereçamento
-- **docs/DECISOES_TECNICAS.md** - Decisões de arquitetura e problemas resolvidos
-- **docs/OPCAO_SEM_ANTIVIRUS.md** - Justificativa técnica sobre antivírus
-- **docs/FIREWALL_DOCKER.md** - Nota técnica sobre firewall em ambiente Docker
-- **docs/EVIDENCIAS/** - Guia de coleta de evidências para apresentação
+| Serviço | IP | Porta(s) Host | Porta(s) Container |
+|---------|---------|---------------|-------------------|
+| Firewall | 10.0.1.20 | 2222, 5433 | 22, 5432 |
+| LDAP | 10.0.1.30 | - | 389, 636 |
+| SMTP | 10.0.1.30 | 2525 | 25 |
+| Database | 10.0.1.40 | 5432 | 5432 |
+| Logs-NTP | 10.0.1.50 | 123/udp | 123/udp, 514/udp |
+| Cliente | 10.0.1.60 | - | - |
 
-## 🔧 Desenvolvimento
-
-1. Trabalhar nos arquivos na VM
-2. Commitar mudanças:
-   ```bash
-   git add .
-   git commit -m "Descrição das mudanças"
-   git push
-   ```
-3. No host (WSL), fazer pull:
-   ```bash
-   git pull
-   ```
-
-## 📅 Data de Apresentação
-
-**27/01/2026**
-
-## 📚 Tópicos Implementados
-
-- ✅ **Permissões avançadas e ACLs** - Script `test_acls.sh` com cenários por departamento
-- ✅ **Firewall com Netfilter** - iptables com logging e controle de rede
-- ✅ **NTP (sincronização de tempo)** - chrony com múltiplas fontes
-- ✅ **Serviços de log e log centralizado** - rsyslog recebendo de todos os containers
-- ✅ **LDAP e integração com serviços** - Samba AD + Kerberos
-- ✅ **Samba/AD e compartilhamentos** - SMB/CIFS integrado com LDAP
-- ⚠️ **Antivírus corporativo** - Desativado (ver docs/OPCAO_SEM_ANTIVIRUS.md)
-- ✅ **Servidor SMTP** - Postfix + Dovecot + SpamAssassin + Maildir
-- ✅ **Banco de dados** - PostgreSQL com CRUD, backup e restore completos
+---
 
 ## 🧪 Scripts de Teste
 
-- **run_all_tests.sh** - Executa todos os testes sequencialmente
-- **run_test_services.sh** - Testa conectividade de todos os serviços
-- **test_crud_db.sh** - Demonstra operações CRUD no PostgreSQL
-- **test_acls.sh** - Testa permissões avançadas e ACLs
-- **test_firewall.sh** - Verifica regras iptables e conectividade
-- **test_ntp.sh** - Valida sincronização de tempo (chrony)
-- **test_smtp_completo.sh** - Teste completo de envio e entrega de email
+### Testes Principais
 
-## ⚠️ Notas Importantes
+```bash
+# Teste End-to-End (completo)
+./scripts/test_end_to_end.sh
 
-- **Antivírus:** O scan de vírus (ClamAV) está temporariamente desativado (content_filter comentado no Postfix). Entrega de correio e antispam estão operacionais. Ver **docs/OPCAO_SEM_SCAN_ANTIVIRUS.md**.
-- Não configurar replicação master-slave no banco de dados
-- Todos os arquivos devem estar versionados no Git
-- Documentar todas as decisões e problemas encontrados
-- Coletar evidências (prints, logs, configurações)
+# Testes básicos de serviços
+./scripts/test_services.sh
+
+# Firewall (regras e port forward)
+./scripts/test_firewall_apenas_regras.sh
+
+# Ver regras iptables
+./scripts/show_firewall_rules.sh
+```
+
+### Diagnóstico
+
+```bash
+# Debug firewall
+./scripts/debug_firewall.sh
+
+# Diagnóstico rsyslog
+./scripts/diagnose_rsyslog.sh
+
+# Corrigir rsyslog
+./scripts/fix_rsyslog.sh
+```
+
+Ver lista completa em [scripts/README_TESTES.md](scripts/README_TESTES.md)
+
+---
+
+## ✅ Funcionalidades Implementadas
+
+### Integração Completa
+
+- ✅ **LDAP ↔ SMTP:** Validação de usuários para email
+- ✅ **SMTP → Logs-NTP:** Logs centralizados via rsyslog
+- ✅ **Cliente → Firewall → Database:** Port forwarding (DNAT)
+- ✅ **Containers → Logs-NTP:** Sincronização NTP
+- ✅ **Sistema → Database:** Auditoria de transações
+
+### Segurança
+
+- ✅ Firewall com iptables
+- ✅ Autenticação centralizada (LDAP)
+- ✅ Antispam (SpamAssassin)
+- ✅ ACLs (Access Control Lists)
+- ✅ Relay restrictions no SMTP
+
+### Auditoria e Monitoramento
+
+- ✅ Logs centralizados (rsyslog)
+- ✅ Auditoria no banco de dados
+- ✅ Rastreabilidade end-to-end (test_id)
+- ✅ Logging de conexões no firewall
+
+---
+
+## 🛠️ Comandos Úteis
+
+### Gerenciar Containers
+
+```bash
+# Ver status
+docker-compose ps
+
+# Logs
+docker-compose logs [serviço]
+docker-compose logs -f smtp  # Follow
+
+# Parar/Iniciar
+docker-compose stop
+docker-compose start
+
+# Reiniciar
+docker-compose restart [serviço]
+
+# Rebuild
+docker-compose build [serviço]
+docker-compose up -d [serviço]
+```
+
+### Acessar Containers
+
+```bash
+# Bash interativo
+docker-compose exec [serviço] bash
+
+# Exemplos
+docker-compose exec smtp bash
+docker-compose exec database bash
+docker-compose exec cliente bash
+```
+
+### Limpeza
+
+```bash
+# Parar e remover
+docker-compose down
+
+# Remover volumes (apaga dados!)
+docker-compose down -v
+
+# Rebuild completo
+docker-compose down -v
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+---
+
+## 📁 Estrutura do Projeto
+
+```
+.
+├── docker/                  # Dockerfiles e configs
+│   ├── firewall/
+│   ├── ldap/
+│   ├── smtp/
+│   ├── database/
+│   ├── logs-ntp/
+│   └── cliente/
+├── scripts/                 # Scripts de teste
+│   ├── test_end_to_end.sh
+│   ├── test_services.sh
+│   ├── test_firewall_*.sh
+│   └── ...
+├── docs/                    # Documentação
+│   ├── 01_INSTALACAO.md
+│   ├── 02_TOPOLOGIA.md
+│   ├── 03_TESTE_E2E.md
+│   ├── servicos/           # Doc de cada serviço
+│   └── EVIDENCIAS/
+├── backups/                 # Backups do database
+├── docker-compose.yml       # Orquestração
+└── README.md               # Este arquivo
+```
+
+---
+
+## 🎓 Para Apresentação
+
+### Demonstração Sugerida (5-10 min)
+
+1. **Mostrar topologia** (diagrama visual)
+2. **Executar teste E2E** (`./scripts/test_end_to_end.sh`)
+3. **Destacar score** (6/6 serviços integrados)
+4. **Mostrar firewall** (regras iptables com port forward)
+5. **Mostrar logs centralizados** (estrutura em `/var/log/remote/`)
+6. **Mostrar auditoria** (tabela `audit_log` no PostgreSQL)
+
+### Comandos para Demonstração Ao Vivo
+
+```bash
+# Firewall: Regras e port forward
+docker-compose exec firewall iptables -t nat -L PREROUTING -n -v
+
+# Logs: Estrutura centralizada
+docker-compose exec logs-ntp ls -lR /var/log/remote/
+
+# Database: Auditoria
+docker-compose exec database psql -U app_user -d empresa_db \
+  -c "SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT 5;"
+
+# LDAP: Usuários
+docker-compose exec ldap samba-tool user list
+```
+
+---
+
+## 📞 Suporte
+
+### Troubleshooting
+
+Ver seção de troubleshooting em cada documento de serviço:
+- [FIREWALL.md](docs/servicos/FIREWALL.md#troubleshooting)
+- [SMTP.md](docs/servicos/SMTP.md#troubleshooting)
+- [DATABASE.md](docs/servicos/DATABASE.md#troubleshooting)
+
+### Logs
+
+```bash
+# Ver logs de um serviço
+docker-compose logs [serviço]
+
+# Últimas 50 linhas
+docker-compose logs --tail=50 [serviço]
+
+# Tempo real
+docker-compose logs -f [serviço]
+```
+
+---
+
+## 🔗 Links Úteis
+
+- [Docker Documentation](https://docs.docker.com/)
+- [Docker Compose Reference](https://docs.docker.com/compose/)
+- [Samba AD DC](https://wiki.samba.org/index.php/Setting_up_Samba_as_an_Active_Directory_Domain_Controller)
+- [Postfix Documentation](http://www.postfix.org/documentation.html)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+
+---
+
+**Projeto: Sistema de infraestrutura corporativa integrada com 6 serviços demonstrando integração completa e workflow end-to-end realista.** ✅
