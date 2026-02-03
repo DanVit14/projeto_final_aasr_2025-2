@@ -23,6 +23,10 @@ echo -e "${CYAN}PASSO 1: Configurar servidor Logs-NTP...${NC}"
 echo ""
 
 echo "1.1. Habilitar recepção UDP no rsyslog..."
+# Remover configuração antiga se existir
+docker-compose exec -T logs-ntp rm -f /etc/rsyslog.d/00-remote.conf 2>/dev/null || true
+
+# Criar nova configuração
 docker-compose exec -T logs-ntp bash -c 'cat > /etc/rsyslog.d/00-remote.conf <<EOF
 # Habilitar recepção de logs remotos via UDP
 module(load="imudp")
@@ -47,8 +51,11 @@ echo -e "${GREEN}✓ Diretório /var/log/remote criado${NC}"
 echo ""
 
 echo "1.3. Reiniciar rsyslog no Logs-NTP..."
-docker-compose exec -T logs-ntp pkill rsyslogd 2>/dev/null || true
-sleep 1
+# Parar rsyslog (se estiver rodando)
+docker-compose exec -T logs-ntp sh -c 'kill $(cat /run/rsyslogd.pid 2>/dev/null) 2>/dev/null || killall rsyslogd 2>/dev/null || true'
+sleep 2
+
+# Iniciar rsyslog
 docker-compose exec -T logs-ntp rsyslogd
 sleep 2
 
@@ -75,6 +82,10 @@ echo -e "${CYAN}PASSO 2: Configurar cliente SMTP...${NC}"
 echo ""
 
 echo "2.1. Configurar forward de logs no SMTP..."
+# Remover configuração antiga se existir
+docker-compose exec -T smtp rm -f /etc/rsyslog.d/50-forward.conf 2>/dev/null || true
+
+# Criar nova configuração
 docker-compose exec -T smtp bash -c 'cat > /etc/rsyslog.d/50-forward.conf <<EOF
 # Forward todos os logs para o servidor central
 *.* @logs-ntp:514
@@ -88,8 +99,11 @@ fi
 echo ""
 
 echo "2.2. Reiniciar rsyslog no SMTP..."
-docker-compose exec -T smtp pkill rsyslogd 2>/dev/null || true
-sleep 1
+# Parar rsyslog (se estiver rodando)
+docker-compose exec -T smtp sh -c 'kill $(cat /run/rsyslogd.pid 2>/dev/null) 2>/dev/null || killall rsyslogd 2>/dev/null || true'
+sleep 2
+
+# Iniciar rsyslog
 docker-compose exec -T smtp rsyslogd
 sleep 2
 
