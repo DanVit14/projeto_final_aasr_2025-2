@@ -91,6 +91,15 @@ echo "========================================"
 echo ""
 ./scripts/test_smtp_completo.sh
 echo ""
+sleep 2
+
+# Teste 8: Integrações Entre Serviços
+echo "========================================"
+echo -e "${BLUE}  TESTE 8: Integrações Entre Serviços${NC}"
+echo "========================================"
+echo ""
+./scripts/test_integrations.sh
+echo ""
 
 # Resumo final
 echo ""
@@ -106,6 +115,7 @@ echo "  ✓ ACLs (permissões avançadas)"
 echo "  ✓ Firewall (iptables/Netfilter)"
 echo "  ✓ NTP (sincronização de tempo)"
 echo "  ✓ SMTP (envio e entrega de email)"
+echo "  ✓ Integrações entre serviços (SMTP-LDAP, rsyslog, NTP)"
 echo ""
 echo "Próximos passos:"
 echo "  1. Testar restore do backup:"
