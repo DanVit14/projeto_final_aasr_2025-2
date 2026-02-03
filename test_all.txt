@@ -1,0 +1,267 @@
+============================================================
+[0;36m  EXECUTANDO TODOS OS TESTES[0m
+============================================================
+
+>> Testando Firewall...
+============================================================
+[0;36m  TESTE: Firewall[0m
+============================================================
+
+[0;36m1. Regras NAT (Port Forwarding):[0m
+Chain PREROUTING (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 DNAT       6    --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:5432 to:10.0.1.40:5432
+
+[0;36m2. Regras FORWARD:[0m
+Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 ACCEPT     6    --  *      *       0.0.0.0/0            10.0.1.40            tcp dpt:5432
+    0     0 ACCEPT     6    --  *      *       10.0.1.40            0.0.0.0/0            tcp spt:5432
+    0     0 LOG        6    --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:5432 LOG flags 0 level 4 prefix "[FW-DB] "
+
+⚠️  Port forward ainda não processou pacotes (normal antes do teste E2E)
+
+============================================================
+[0;32mTeste do Firewall concluído[0m
+============================================================
+
+>> Testando LDAP...
+============================================================
+[0;36m  TESTE: LDAP (Samba AD DC)[0m
+============================================================
+
+[0;36m1. Verificar Samba AD DC:[0m
+[0;32m✓ Processo Samba rodando[0m
+
+[0;36m2. Usuários no domínio:[0m
+Guest
+Administrator
+user2
+user1
+admin
+krbtgt
+
+[0;36m3. Testar porta LDAP:[0m
+[0;32m✓ Porta 389 acessível[0m
+
+============================================================
+[0;32mTeste do LDAP concluído[0m
+============================================================
+
+>> Testando SMTP...
+============================================================
+[0;36m  TESTE: SMTP (Postfix)[0m
+============================================================
+
+[0;36m1. Verificar Postfix:[0m
+[0;32m✓ Processo Postfix (master) rodando[0m
+
+[0;36m2. Testar porta SMTP:[0m
+[0;32m✓ Porta 25 acessível[0m
+
+[0;36m3. Verificar fila:[0m
+Mail queue is empty
+
+============================================================
+[0;32mTeste do SMTP concluído[0m
+============================================================
+
+>> Testando Database...
+============================================================
+[0;36m  TESTE: Database (PostgreSQL)[0m
+============================================================
+
+[0;36m1. Verificar PostgreSQL:[0m
+[0;32m✓ PostgreSQL aceitando conexões[0m
+
+[0;36m2. Testar conexão:[0m
+[0;32m✓ Conexão ao banco OK[0m
+
+[0;36m3. Listar tabelas:[0m
+            List of tables
+ Schema |   Name    | Type  |  Owner   
+--------+-----------+-------+----------
+ public | audit_log | table | app_user
+ public | produtos  | table | app_user
+ public | usuarios  | table | app_user
+ public | vendas    | table | app_user
+(4 rows)
+
+
+============================================================
+[0;32mTeste do Database concluído[0m
+============================================================
+
+>> Testando Logs-NTP...
+============================================================
+[0;36m  TESTE: Logs-NTP (Rsyslog + Chrony)[0m
+============================================================
+
+[0;36m1. Verificar rsyslog (porta 514):[0m
+[0;32m✓ rsyslog escutando UDP:514[0m
+
+[0;36m2. Verificar logs remotos:[0m
+[0;32m✓ Logs remotos presentes:[0m
+X
+cliente.empresa.local
+debian12
+firewall
+mail
+
+[0;36m3. Verificar NTP (chrony):[0m
+[0;32m✓ Chrony sincronizando[0m
+Reference ID    : C8A007C4 (e.st1.ntp.br)
+Stratum         : 2
+Ref time (UTC)  : Tue Feb 03 20:43:42 2026
+
+============================================================
+[0;32mTeste do Logs-NTP concluído[0m
+============================================================
+
+>> Testando Integração End-to-End...
+============================================================
+[0;36m  TESTE END-TO-END: Workflow Corporativo Completo[0m
+============================================================
+
+Cenário: Usuário autentica, envia email, sistema audita
+
+Fluxo:
+  1. Cliente autentica no LDAP
+  2. Cliente envia email via SMTP (validado contra LDAP)
+  3. SMTP processa e entrega no Maildir
+  4. SMTP envia logs para rsyslog centralizado
+  5. Sistema registra auditoria no PostgreSQL
+  6. Cliente consulta auditoria no banco
+
+============================================================
+
+============================================================
+[0;34mPASSO 1/6: Autenticação no LDAP[0m
+============================================================
+
+1.1. Verificar se usuário user1 existe no LDAP...
+[1;33m⚠ Usuário user1 não encontrado no LDAP[0m
+[1;33m  Criando usuário para teste...[0m
+
+1.2. Testar autenticação LDAP (bind)...
+[1;33m⚠ Autenticação LDAP não testada (ldapwhoami pode não estar disponível)[0m
+
+============================================================
+[0;34mPASSO 2/6: Envio de Email via SMTP[0m
+============================================================
+
+2.1. Atualizar mapas LDAP no Postfix...
+Atualizando arquivos hash do LDAP...
+
+1. Atualizando virtual-mailbox-domains.hash...
+   ✓ Domínios atualizados: 1
+2. Atualizando virtual-mailbox-maps.hash...
+   ✓ Caixas de correio atualizadas: 4
+3. Atualizando virtual-alias-maps.hash...
+   ✓ Aliases atualizados: 5
+4. Atualizando sender-login-maps.hash...
+   ✓ Sender login maps atualizados: 4
+
+Criando Maildirs (new, cur, tmp) para cada caixa...
+   ✓ Maildirs criados/atualizados
+
+Verificando arquivos criados...
+-rw-r--r-- 1 root root 120 Feb  3 20:44 /etc/postfix/ldap/sender-login-maps.hash
+-rw-r--r-- 1 root root 218 Feb  3 20:44 /etc/postfix/ldap/virtual-alias-maps.hash
+-rw-r--r-- 1 root root  28 Feb  3 20:44 /etc/postfix/ldap/virtual-mailbox-domains.hash
+-rw-r--r-- 1 root root 212 Feb  3 20:44 /etc/postfix/ldap/virtual-mailbox-maps.hash
+-rw-r--r-- 1 root root 12288 Feb  3 20:44 /etc/postfix/ldap/sender-login-maps.hash.db
+-rw-r--r-- 1 root root 12288 Feb  3 20:44 /etc/postfix/ldap/virtual-alias-maps.hash.db
+-rw-r--r-- 1 root root 12288 Feb  3 20:44 /etc/postfix/ldap/virtual-mailbox-domains.hash.db
+-rw-r--r-- 1 root root 12288 Feb  3 20:44 /etc/postfix/ldap/virtual-mailbox-maps.hash.db
+
+✓ Processo de atualização concluído!
+
+2.2. Enviar email de user1@empresa.local para user2@empresa.local...
+[0;32m✓ Email enviado com sucesso[0m
+
+============================================================
+[0;34mPASSO 3/6: Verificação de Entrega (SMTP → Maildir)[0m
+============================================================
+
+3.1. Aguardar processamento do Postfix (5s)...
+
+3.2. Verificar se email foi entregue no Maildir de user2...
+[0;32m✓ Email entregue no Maildir de user2[0m
+   (encontrado 3 arquivo(s) com ID do teste)
+
+============================================================
+[0;34mPASSO 4/6: Logs Centralizados (SMTP → rsyslog)[0m
+============================================================
+
+4.1. Procurar logs do teste no servidor logs-ntp...
+[1;33m⚠ Logs não encontrados no servidor central[0m
+   (podem estar em outro path ou demorar a propagar)
+
+4.2. Verificar logs locais do Postfix...
+2026-02-03T20:44:10.810860+00:00 mail postfix/smtpd[608]: disconnect from cliente_teste.projeto_final_aasr_2025-2_aasr_net[10.0.1.60] commands=0/0
+2026-02-03T20:44:16.188496+00:00 mail postfix[671]: Postfix is using backwards-compatible default settings
+2026-02-03T20:44:16.188564+00:00 mail postfix[671]: See http://www.postfix.org/COMPATIBILITY_README.html for details
+2026-02-03T20:44:16.188570+00:00 mail postfix[671]: To disable backwards compatibility use "postconf compatibility_level=3.6" and "postfix reload"
+2026-02-03T20:44:16.222142+00:00 mail postfix/postfix-script[678]: the Postfix mail system is running: PID: 332
+
+============================================================
+[0;34mPASSO 5/6: Auditoria no Banco de Dados[0m
+============================================================
+
+5.1. Criar tabela de auditoria (se não existir)...
+CREATE TABLE
+[0;32m✓ Tabela audit_log pronta[0m
+
+5.2. Inserir registro de auditoria do teste...
+INSERT 0 1
+[0;32m✓ Auditoria registrada no PostgreSQL[0m
+
+============================================================
+[0;34mPASSO 6/6: Consulta de Auditoria (Cliente → Database)[0m
+============================================================
+
+6.1. Consultar registros de auditoria do teste...
+ id |         timestamp          |         test_id          | usuario |           acao            | status  
+----+----------------------------+--------------------------+---------+---------------------------+---------
+  3 | 2026-02-03 20:44:31.820447 | TEST_E2E_20260203_174414 | user1   | Envio de email end-to-end | SUCESSO
+(1 row)
+
+
+6.2. Estatísticas de auditoria...
+[0;32m✓ Total de registros de auditoria no sistema: 3[0m
+
+============================================================
+[0;32m  TESTE END-TO-END CONCLUÍDO![0m
+============================================================
+
+Fluxo completo executado:
+  [0;32m✓[0m 1. Cliente → LDAP: Autenticação (CREATED)
+  [0;32m✓[0m 2. Cliente → SMTP: Envio de email
+  [0;32m✓[0m 3. SMTP → LDAP: Validação de contas
+  [0;32m✓[0m 4. SMTP: Entrega no Maildir
+  [1;33m⚠[0m 5. SMTP → Logs-NTP: Logs (não encontrados no path esperado)
+  [0;32m✓[0m 6. Sistema → Database: Auditoria registrada
+  [0;32m✓[0m 7. Cliente → Database: Consulta de auditoria
+
+Serviços integrados: \033[0;36m6/6\033[0m
+  • LDAP (autenticação)
+  • SMTP (envio e entrega)
+  • Logs-NTP (rsyslog)
+  • Database (auditoria)
+  • Cliente (inicializador)
+  • Firewall (rede protegida)
+
+ID do Teste: \033[0;36mTEST_E2E_20260203_174414\033[0m
+
+Para verificar novamente:
+  docker-compose exec database psql -U app_user -d empresa_db -c "SELECT * FROM audit_log WHERE test_id = 'TEST_E2E_20260203_174414';"
+
+Para limpar auditoria de testes:
+  docker-compose exec database psql -U app_user -d empresa_db -c "DELETE FROM audit_log WHERE test_id LIKE 'TEST_E2E_%';"
+
+============================================================
+
+============================================================
+[0;32m  TODOS OS TESTES CONCLUÍDOS[0m
+============================================================
